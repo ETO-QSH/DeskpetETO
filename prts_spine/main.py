@@ -14,30 +14,47 @@ agents = scraper.get_all_agent_head_normal()
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 
 
-def download_files(Json):
-    result = dict()
-    for agent in Json:
-        result[agent["name"]] = {}
-        os.makedirs(f"saves/{agent["name"]}", exist_ok=True)
-        for head, link in agent["head"].items():
-            response = session.get(link, headers=headers, verify=False)
-            path = f"saves/{agent["name"]}/head/{head}.png"
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, 'wb') as f:
-                f.write(response.content)
-            result[agent["name"]][head] = {"head": path}
-        for spine, links in agent["spine"].items():
-            for model, link in links.items():
-                result[agent["name"]][spine][model] = {}
+def download_files(json_data):
+    result, tasks = {agent["name"]: {} for agent in json_data}, []
+    for agent in json_data:
+        name = agent["name"]
+        for head_name, url in agent["head"].items():
+            tasks.append((url, f"saves/{name}/head/{head_name}.png", [name, head_name, "head"]))
+        for spine_name, spine_models in agent["spine"].items():
+            for model_name, base_url in spine_models.items():
                 for suffix in [".png", ".skel", ".atlas"]:
-                    response = session.get(link + suffix, headers=headers, verify=False)
-                    path = f"saves/{agent["name"]}/spine/{spine}/{model}/{link.split("/")[-1]}{suffix}"
-                    os.makedirs(os.path.dirname(path), exist_ok=True)
-                    with open(path, 'wb') as f:
-                        f.write(response.content)
-                    result[agent["name"]][spine][model][suffix[1:]] = path
-    with open(f"saves.json", "w", encoding="utf-8") as file:
-        json.dump(result, file, indent=4, ensure_ascii=False)
+                    path = f"saves/{name}/spine/{spine_name}/{model_name}/{base_url.split('/')[-1]}{suffix}"
+                    tasks.append((f"{base_url}{suffix}", path, [name, spine_name, model_name, suffix[1:]]))
+
+    with tqdm(total=len(tasks), desc="正在处理喵") as pbar:
+        with ThreadPoolExecutor(max_workers=32) as executor:
+            futures = []
+            for task in tasks:
+                future = executor.submit(download_single_file, *task, result_dict=result)
+                futures.append(future)
+            for _ in as_completed(futures):
+                pbar.update()
+
+    with open("saves.json", "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=4, ensure_ascii=False)
+
+
+def download_single_file(url, save_path, key_path, result_dict):
+    while True:
+        try:
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            response = session.get(url, headers=headers, verify=False, timeout=15)
+            response.raise_for_status()
+            with open(save_path, "wb") as f:
+                f.write(response.content)
+            current = result_dict
+            for key in key_path[:-1]:
+                current = current.setdefault(key, {})
+            current[key_path[-1]] = save_path
+            break
+        except Exception as e:
+            print(f"下载失败正在重试: {url} ({type(e).__name__})")
+            time.sleep(3)
 
 
 def process_agent(item):
@@ -48,12 +65,12 @@ def process_agent(item):
             agents[item] = agent
             break
         except Exception as e:
-            print(agents[item], e)
+            print(f"获取失败正在重试: {agents[item]["name"]} ({type(e).__name__})")
             time.sleep(3)
 
 
 with tqdm(total=len(agents), desc="正在处理喵") as pbar:
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=8) as executor:
         futures = [executor.submit(process_agent, item) for item in range(len(agents))]
         for future in as_completed(futures):
             future.result()
@@ -62,6 +79,3 @@ with tqdm(total=len(agents), desc="正在处理喵") as pbar:
 with open("data.json", "w", encoding="utf-8") as file:
     json.dump(agents, file, indent=4, ensure_ascii=False)
 download_files(agents)
-
-with open("data.json", encoding="utf-8") as f:
-    download_files(json.load(f))
