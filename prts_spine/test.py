@@ -111,6 +111,7 @@ for skin in skin_list:
 print(skin_model_dict)
 """
 
+"""
 data = {
     "默认": {
         "背面": {
@@ -142,3 +143,34 @@ from main import download_files
 
 with open("data.json", encoding="utf-8") as f:
     download_files(json.load(f))
+"""
+
+"""
+def download_files(Json):
+    result = dict()
+    with tqdm(total=str(Json).count("https"), desc="正在处理喵") as pbar:
+        for agent in Json:
+            result[agent["name"]] = {}
+            os.makedirs(f"saves/{agent["name"]}", exist_ok=True)
+            for head, link in agent["head"].items():
+                response = session.get(link, headers=headers, verify=False)
+                path = f"saves/{agent["name"]}/head/{head}.png"
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, 'wb') as f:
+                    f.write(response.content)
+                    pbar.update()
+                result[agent["name"]][head] = {"head": path}
+            for spine, links in agent["spine"].items():
+                for model, link in links.items():
+                    result[agent["name"]][spine][model] = {}
+                    for suffix in [".png", ".skel", ".atlas"]:
+                        response = session.get(link + suffix, headers=headers, verify=False)
+                        path = f"saves/{agent["name"]}/spine/{spine}/{model}/{link.split("/")[-1]}{suffix}"
+                        os.makedirs(os.path.dirname(path), exist_ok=True)
+                        with open(path, 'wb') as f:
+                            f.write(response.content)
+                            pbar.update()
+                        result[agent["name"]][spine][model][suffix[1:]] = path
+    with open(f"saves.json", "w", encoding="utf-8") as file:
+        json.dump(result, file, indent=4, ensure_ascii=False)
+"""
