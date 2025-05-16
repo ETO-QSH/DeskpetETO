@@ -276,7 +276,44 @@ class WebScraper:
         self.browser.quit()
         return result
 
+    def get_skin_brand_list(self):
+        self.browser.get("https://prts.wiki/w/%E6%97%B6%E8%A3%85%E5%9B%9E%E5%BB%8A")
+
+        result, brand_list = {}, WebDriverWait(self.browser, 15, 1).until(PEL((By.CLASS_NAME, "brandbtncontroler")))
+        for div in brand_list.find_elements(By.XPATH, "./div"):
+            item = div.find_element(By.XPATH, "./div/div/a")
+            name = item.find_element(By.XPATH, "./div[2]").stext
+            link = item.get_attribute('href')
+            result[name] = link
+
+        self.browser.quit()
+        return result
+
+    def get_one_brand_infor(self, link):
+        self.browser.get(link)
+
+        mpo = WebDriverWait(self.browser, 15, 1).until(PEL((By.CLASS_NAME, "mw-parser-output")))
+        result, table_list = {}, mpo.find_elements(By.XPATH, "./table")[::3]
+        for table in table_list:
+            tr_list = table.find_elements(By.XPATH, "./tbody/tr")
+            title = tr_list[0].find_element(By.XPATH, "./th").stext
+            description = tr_list[1].find_element(By.XPATH, "./td[2]")
+            annotations = tr_list[-1].find_element(By.XPATH, "./td")
+            result[title] = dict()
+
+            for tag, name in [(description, "描述"), (annotations, "注释")]:
+                contents = []
+                for p in tag.find_elements(By.XPATH, './p'):
+                    if content := p.stext:
+                        contents.append(content)
+                    else:
+                        contents += [i.stext for i in p.find_elements(By.XPATH, './i')]
+                result[title][name] = contents
+
+        self.browser.quit()
+        return result
+
 
 if __name__ == "__main__":
     scraper = WebScraper()
-    print(scraper.get_one_agent_records("纯烬艾雅法拉"))
+    print(scraper.get_one_brand_infor('https://prts.wiki/w/%E6%97%B6%E8%A3%85%E5%9B%9E%E5%BB%8A/%E5%BF%92%E6%96%AF%E7%89%B9%E6%94%B6%E8%97%8F'))
