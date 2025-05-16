@@ -174,3 +174,7 @@ def download_files(Json):
     with open(f"saves.json", "w", encoding="utf-8") as file:
         json.dump(result, file, indent=4, ensure_ascii=False)
 """
+
+
+datavoicebase="日语:voice/char_124_kroos,中文-普通话:voice_cn/char_124_kroos,韩语:voice_kr/char_124_kroos,英语:voice_en/char_124_kroos"
+print(eval("{'"+datavoicebase.replace(",", "','").replace(":", "':'")+"'}"))

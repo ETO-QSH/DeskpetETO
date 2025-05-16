@@ -57,11 +57,11 @@ def download_single_file(url, save_path, key_path, result_dict):
             time.sleep(3)
 
 
-def process_agent(item):
+def process_agent_spines(item):
     while True:
         try:
             scraper = WebScraper()
-            agent = scraper.get_one_agent_infor(agents[item], session, headers)
+            agent = scraper.get_one_agent_spines(agents[item], session, headers)
             agents[item] = agent
             break
         except Exception as e:
@@ -71,7 +71,7 @@ def process_agent(item):
 
 with tqdm(total=len(agents), desc="正在处理喵") as pbar:
     with ThreadPoolExecutor(max_workers=8) as executor:
-        futures = [executor.submit(process_agent, item) for item in range(len(agents))]
+        futures = [executor.submit(process_agent_spines, item) for item in range(len(agents))]
         for future in as_completed(futures):
             future.result()
             pbar.update()
