@@ -14,7 +14,7 @@ agents = scraper.get_all_agent_head_normal()
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 
 
-def download_files(json_data):
+def download_files(json_data, filter=None):
     result, tasks = {agent["name"]: {} for agent in json_data}, []
     for agent in json_data:
         name = agent["name"]
@@ -22,6 +22,9 @@ def download_files(json_data):
             tasks.append((url, f"saves/{name}/head/{head_name}.png", [name, head_name, "head"]))
         for spine_name, spine_models in agent["spine"].items():
             for model_name, base_url in spine_models.items():
+                if filter:
+                    if model_name not in filter:
+                        break
                 for suffix in [".png", ".skel", ".atlas"]:
                     path = f"saves/{name}/spine/{spine_name}/{model_name}/{base_url.split('/')[-1]}{suffix}"
                     tasks.append((f"{base_url}{suffix}", path, [name, spine_name, model_name, suffix[1:]]))

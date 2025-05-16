@@ -6,7 +6,6 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.expected_conditions import presence_of_element_located as PEL
 from urllib.parse import unquote
 
-
 WebElement.stext = property(lambda self: self.get_attribute('textContent').strip())
 
 
