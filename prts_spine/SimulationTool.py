@@ -15,24 +15,47 @@ class WebScraper:
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--disable-gpu')
         self.browser = webdriver.Chrome(options=chrome_options)
-        self.get_xpath_script = """
-            function getAbsoluteXPath(element) {
-                let path = '';
-                while (element !== document.documentElement) { // 从当前元素向上遍历到 html 节点
-                    let tagName = element.tagName.toLowerCase();
-                    let index = 1; // 兄弟节点中的位置索引（从1开始）
-                    let siblings = element.parentNode.childNodes;
-                    for (let sib of siblings) {
-                        if (sib === element) break;
-                        if (sib.nodeType === 1 && sib.tagName === element.tagName) index++;
-                    }
-                    path = '/' + tagName + (index > 1 ? '[' + index + ']' : '') + path;
-                    element = element.parentNode;
-                }
-                return '/html' + path; // 补全根节点
-            }
-            return getAbsoluteXPath(arguments[0]);
-        """
+
+    def title_2_record(self, title, n, filter=None):
+        element = WebDriverWait(self.browser, 15, 1).until(PEL((By.ID, title)))
+        parent_element = element.find_element(By.XPATH, "./..")
+        parent_tag = parent_element.tag_name
+
+        if filter:
+            siblings = parent_element.find_elements(By.XPATH, "following-sibling::*")
+
+            count, target_parent = 0, None
+            for sib in siblings:
+                if sib.tag_name == parent_tag:
+                    count += 1
+                    if count == n:
+                        target_parent = sib
+                        break
+
+            if not target_parent:
+                return []
+
+            elements, current = [], parent_element.find_element(By.XPATH, "following-sibling::*[1]")
+            while current and current != target_parent:
+                elements.append(current)
+                next_elements = current.find_elements(By.XPATH, "following-sibling::*[1]")
+                current = next_elements[0] if next_elements else None
+
+            if len(elements) < len(filter):
+                return []
+
+            i, matched, window_size = 0, [], len(filter)
+            while i <= len(elements) - window_size:
+                match = all(elements[i + j].tag_name.lower() == filter[j].lower() for j in range(window_size))
+                if match:
+                    matched.extend(elements[i:i + window_size])
+                    i += window_size
+                else:
+                    i += 1
+
+            return matched
+        else:
+            return parent_element.find_element(By.XPATH, f"following-sibling::*[{n}]")
 
     def get_all_agent_head_normal(self):
         self.browser.get("https://prts.wiki/w/%E5%B9%B2%E5%91%98%E4%B8%80%E8%A7%88")
@@ -124,58 +147,16 @@ class WebScraper:
         self.browser.get(f"https://prts.wiki/w/{name}")
         result = {}
 
-        def title_2_record(title, n, filter=None):
-            element = WebDriverWait(self.browser, 15, 1).until(PEL((By.ID, title)))
-            parent_element = element.find_element(By.XPATH, "./..")
-            parent_tag = parent_element.tag_name
-
-            if filter:
-                siblings = parent_element.find_elements(By.XPATH, "following-sibling::*")
-
-                count, target_parent = 0, None
-                for sib in siblings:
-                    if sib.tag_name == parent_tag:
-                        count += 1
-                        if count == n:
-                            target_parent = sib
-                            break
-
-                if not target_parent:
-                    return []
-
-                elements, current = [], parent_element.find_element(By.XPATH, "following-sibling::*[1]")
-                while current and current != target_parent:
-                    elements.append(current)
-                    next_elements = current.find_elements(By.XPATH, "following-sibling::*[1]")
-                    current = next_elements[0] if next_elements else None
-
-                if len(elements) < len(filter):
-                    return []
-
-                i, matched, window_size = 0, [], len(filter)
-                while i <= len(elements) - window_size:
-                    match = all(elements[i + j].tag_name.lower() == filter[j].lower() for j in range(window_size))
-                    if match:
-                        matched.extend(elements[i:i + window_size])
-                        i += window_size
-                    else:
-                        i += 1
-
-                return matched
-
-            else:
-                return parent_element.find_element(By.XPATH, f"following-sibling::*[{n}]")
-
         illustrate_list = WebDriverWait(self.browser, 15, 1).until(PEL((By.ID, "charimg"))).find_elements(By.XPATH, "./img")
         result["立绘"] = {illustrate.get_attribute('id'): illustrate.get_attribute('src').split("?")[0] for illustrate in illustrate_list}
 
-        h3divs = title_2_record("模组", 1, filter=["h3", "div"])
+        h3divs = self.title_2_record("模组", 1, filter=["h3", "div"])
         titles = [h3.find_elements(By.XPATH, "./span")[-1].stext for h3 in h3divs[::2]]
         contents = [h3divs[1].find_element(By.XPATH, "./div[3]/div[2]").stext]
         contents += [div.find_element(By.XPATH, "./div/div[2]/div[2]/div[2]").stext for div in h3divs[3::2]]
         result["模组"] = dict(zip(titles, contents))
 
-        ht, xw = title_2_record("相关道具", 1).find_element(By.XPATH, "./tbody").find_elements(By.XPATH, "./tr")
+        ht, xw = self.title_2_record("相关道具", 1).find_element(By.XPATH, "./tbody").find_elements(By.XPATH, "./tr")
         potential = {}
         for tag, name in [(ht, "招聘合同"), (xw, "信物")]:
             contents = []
@@ -187,13 +168,13 @@ class WebScraper:
             potential[name] = "\n".join(contents)
         result["相关道具"] = potential
 
-        tr_list = title_2_record("干员档案", 2).find_element(By.XPATH, "./tbody").find_elements(By.XPATH, "./tr")
+        tr_list = self.title_2_record("干员档案", 2).find_element(By.XPATH, "./tbody").find_elements(By.XPATH, "./tr")
         titles = [tr_title.find_element(By.XPATH, "./th/div/p").stext for tr_title in tr_list[1::3]]
         contents = [tr_content.find_element(By.XPATH, "./td/div/p").stext for tr_content in tr_list[3::3]]
         result["干员档案"] = dict(zip(titles, contents))
 
         try:
-            tr_list = title_2_record("悖论模拟", 2).find_element(By.XPATH, "./tbody").find_elements(By.XPATH, "./tr")
+            tr_list = self.title_2_record("悖论模拟", 2).find_element(By.XPATH, "./tbody").find_elements(By.XPATH, "./tr")
             title = tr_list[1].find_element(By.XPATH, "./th/div/p").stext
             content = tr_list[3].find_element(By.XPATH, "./td/div/p").stext
             result["悖论模拟"] = {title: content}
@@ -201,7 +182,7 @@ class WebScraper:
             result["悖论模拟"] = dict()
 
         try:
-            tr_list = title_2_record("干员密录", 2).find_element(By.XPATH, "./tbody").find_elements(By.XPATH, "./tr")[1:]
+            tr_list = self.title_2_record("干员密录", 2).find_element(By.XPATH, "./tbody").find_elements(By.XPATH, "./tr")[1:]
             paradox = []
             for tr in tr_list:
                 title_div, poem_div = tr.find_element(By.XPATH, "./td/div").find_elements(By.XPATH, "./div")
@@ -268,7 +249,7 @@ class WebScraper:
                 story = []
                 for li in li_list:
                     link = li.find_element(By.XPATH, "./a").get_attribute('href')
-                    name = li.find_element(By.XPATH, "./a").get_attribute('textContent')
+                    name = li.find_element(By.XPATH, "./a").stext
                     story.append({"name": name, "link": link})
                 tr_01.append({"title": title, "classify": classify, "story": story})
             result[key] = tr_01
@@ -313,7 +294,39 @@ class WebScraper:
         self.browser.quit()
         return result
 
+    def get_side_story_lite(self):
+        self.browser.get("https://prts.wiki/w/%E6%83%85%E6%8A%A5%E5%A4%84%E7%90%86%E5%AE%A4")
+
+        result, tables = {}, self.title_2_record("公共事务实录", 1, filter=["table"])
+        for table in tables:
+            title = table.find_element(By.XPATH, "./tbody/tr[1]/th/big/big").stext
+            try:
+                link = table.find_element(By.XPATH, "./tbody/tr[2]/td[2]/a").get_attribute('href')
+
+                temp_scraper = WebScraper()
+                temp_scraper.browser.get(link)
+                temp_table = temp_scraper.title_2_record("活动剧情", 3)
+                temp, tr_list = [], temp_table.find_elements(By.XPATH, "./tbody/tr[2]/td/div/table/tbody/tr")
+
+            except:
+                temp, tr_list, temp_scraper = [], table.find_elements(By.XPATH, "./tbody/tr[2]/td/div/table/tbody/tr"), None
+
+            finally:
+                for tr in tr_list:
+                    tag, name = tr.find_element(By.XPATH, "./td[1]/span[2]").text.split()
+                    time = tr.find_element(By.XPATH, "./td[3]/span[1]/b").stext
+                    content = tr.find_element(By.XPATH, "./td[3]/span[2]/b").stext
+                    temp.append({"tag": tag, "name": name, "time": time, "content": content})
+
+                result[title] = temp
+                if temp_scraper:
+                    temp_scraper.browser.quit()
+                    del temp_scraper
+
+        self.browser.quit()
+        return result
+
 
 if __name__ == "__main__":
     scraper = WebScraper()
-    print(scraper.get_one_brand_infor('https://prts.wiki/w/%E6%97%B6%E8%A3%85%E5%9B%9E%E5%BB%8A/%E5%BF%92%E6%96%AF%E7%89%B9%E6%94%B6%E8%97%8F'))
+    print(scraper.get_side_story_lite())

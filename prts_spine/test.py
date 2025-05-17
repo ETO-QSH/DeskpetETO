@@ -175,6 +175,27 @@ def download_files(Json):
         json.dump(result, file, indent=4, ensure_ascii=False)
 """
 
-
+"""
 datavoicebase="日语:voice/char_124_kroos,中文-普通话:voice_cn/char_124_kroos,韩语:voice_kr/char_124_kroos,英语:voice_en/char_124_kroos"
 print(eval("{'"+datavoicebase.replace(",", "','").replace(":", "':'")+"'}"))
+"""
+
+# self.get_xpath_script = """
+#     function getAbsoluteXPath(element) {
+#         let path = '';
+#         while (element !== document.documentElement) { // 从当前元素向上遍历到 html 节点
+#             let tagName = element.tagName.toLowerCase();
+#             let index = 1; // 兄弟节点中的位置索引（从1开始）
+#             let siblings = element.parentNode.childNodes;
+#             for (let sib of siblings) {
+#                 if (sib === element) break;
+#                 if (sib.nodeType === 1 && sib.tagName === element.tagName) index++;
+#             }
+#             path = '/' + tagName + (index > 1 ? '[' + index + ']' : '') + path;
+#             element = element.parentNode;
+#         }
+#         return '/html' + path; // 补全根节点
+#     }
+#     return getAbsoluteXPath(arguments[0]);
+# """
+
