@@ -103,6 +103,11 @@ public:
     SpineAnimation(int width, int height)
         : windowWidth(width), windowHeight(height), defaultMixTime(0.2f) {
         currentInstance = this; // 设置当前实例指针
+
+        // 初始化光标
+        handCursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+        arrowCursor = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+        currentInstance = this;
     }
 
     // 1. 加载动画文件
@@ -267,10 +272,18 @@ public:
         if (currentInstance == this) {
             currentInstance = nullptr;
         }
+
+        if (handCursor) glfwDestroyCursor(handCursor);
+        if (arrowCursor) glfwDestroyCursor(arrowCursor);
+
         reset();
     }
 
     bool positionChanged = false;
+
+    GLFWcursor* handCursor = nullptr;
+    GLFWcursor* arrowCursor = nullptr;
+    bool cursorInOpaqueArea = false;
 
 private:
     static SpineAnimation* currentInstance;
@@ -454,7 +467,8 @@ private:
 
         static TaskBarInfo getTaskBarInfo() {
             TaskBarInfo info;
-            APPBARDATA abd = { sizeof(abd) };
+            APPBARDATA abd = {};
+            abd.cbSize = sizeof(abd);
             if (SHAppBarMessage(ABM_GETTASKBARPOS, &abd)) {
                 info.rect = abd.rc;
                 info.thickness = abd.rc.bottom - abd.rc.top;
@@ -530,6 +544,17 @@ public:
         // 修改鼠标移动回调
         glfwSetCursorPosCallback(window, [](GLFWwindow* w, double xPos, double yPos) {
             auto* self = static_cast<SpineAnimation*>(glfwGetWindowUserPointer(w));
+
+            // 转换到Spine坐标系
+            double ySpine = self->windowHeight - yPos;
+            bool isOpaque = self->isMouseOverOpaque(xPos, ySpine);
+
+            // 更新光标样式
+            if (isOpaque != self->cursorInOpaqueArea) {
+                glfwSetCursor(w, isOpaque ? self->handCursor : self->arrowCursor);
+                self->cursorInOpaqueArea = isOpaque;
+            }
+
             if (self->isDragging) {
                 // 获取当前窗口位置
                 int windowX, windowY;
@@ -582,6 +607,15 @@ public:
 
             self->positionChanged = true;
         });
+
+        // 添加窗口刷新回调确保光标状态正确
+        glfwSetWindowRefreshCallback(window, [](GLFWwindow* w) {
+            auto* self = static_cast<SpineAnimation*>(glfwGetWindowUserPointer(w));
+            double x, y;
+            glfwGetCursorPos(w, &x, &y);
+            bool isOpaque = self->isMouseOverOpaque(x, self->windowHeight - y);
+            glfwSetCursor(w, isOpaque ? self->handCursor : self->arrowCursor);
+        });
     }
 
 private:
@@ -589,20 +623,20 @@ private:
     bool isMouseOverOpaque(double x, double y) {
         if (!skeleton) return false;
 
-        // 确保在渲染之后读取像素
-        glFinish();  // 等待所有OpenGL操作完成
+        // 确保OpenGL状态正确
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glReadBuffer(GL_BACK);
 
-        // 转换到OpenGL坐标系
-        int glY = windowHeight - static_cast<int>(y) - 1;
+        // 转换坐标并限制范围
+        int glX = static_cast<int>(clamp(x, 0.0, static_cast<double>(windowWidth) - 1));
+        int glY = windowHeight - static_cast<int>(clamp(y, 0.0, static_cast<double>(windowHeight) - 1)) - 1;
 
-        // 限制坐标在窗口范围内
-        x = clamp(x, 0.0, static_cast<double>(windowWidth) - 1);
-        glY = clamp(glY, 0, windowHeight - 1);
-
-        // 读取单个像素的Alpha值
+        // 读取像素数据
         GLubyte pixel[4];
-        glReadPixels(static_cast<int>(x), glY, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixel);
+        glReadPixels(glX, glY, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixel);
 
+        // 降低阈值提高灵敏度
+        const uint8_t alphaThreshold = 64;
         return pixel[3] >= alphaThreshold;
     }
 };
@@ -691,6 +725,18 @@ int main() {
     // 主循环
     double lastTime = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
+        // 强制读取最新帧缓冲
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        animSystem.render(renderer);
+        glfwSwapBuffers(window);
+
+        // 处理事件前确保渲染完成
+        glFinish();
+
+        // 处理事件
+        glfwPollEvents();
+
         double currTime = glfwGetTime();
         auto delta = static_cast<float>(currTime - lastTime);
         lastTime = currTime;
