@@ -4,6 +4,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from DeskpetETO.CustomCard import CustomCard, AddCard
 from qfluentwidgets import SmoothScrollArea
 from uuid import uuid4
+import json
 import copy
 import os
 
@@ -72,6 +73,9 @@ class Ui_CardFrame(object):
         self.drop_line.setFrameShape(QtWidgets.QFrame.HLine)
         self.drop_line.setLineWidth(2)
         self.drop_line.hide()
+
+        # 加载一些乱七八糟的数据
+        self.load_brands_data()
 
     def _update_scroll_area(self):
         """更新滚动区域高度"""
@@ -176,20 +180,39 @@ class Ui_CardFrame(object):
         self.card_manager.card_modified.emit(card_id)
         return True
 
-    def filter_cards(self, agent=None, skin=None, model=None):
-        """筛选卡片"""
+    def load_brands_data(self):
+        """加载JSON数据并初始化干员列表"""
+        try:
+            with open(r".\resource\brands.json", "r", encoding="utf-8") as f:
+                self.brand_skin_dict = json.load(f)
+                self.brand_skin_dict["默认"] = ["默认"]
+        except Exception as e:
+            print(f"加载JSON数据失败: {e}")
+
+    def filter_cards(self, agent=None, brand=None, model=None):
+        """筛选卡片，支持按品牌筛选"""
         results = []
         for card_id in self.card_manager.card_order:
             data = self.card_manager.cards[card_id]['data']
             match = True
+
+            # 按品牌筛选
+            if brand is not None:
+                # 检查当前卡片的皮肤是否属于指定品牌
+                if data['skin'] not in self.brand_skin_dict.get(brand, []):
+                    match = False
+
+            # 按干员筛选
             if agent is not None and data['agent'] != agent:
                 match = False
-            if skin is not None and data['skin'] != skin:
-                match = False
+
+            # 按模型筛选
             if model is not None and data['model'] != model:
                 match = False
+
             if match:
                 results.append(card_id)
+
         return results
 
     def batch_remove(self, card_ids):
@@ -318,6 +341,16 @@ class Ui_CardFrame(object):
 
             # 更新索引
             self.card_manager._update_indices(min(original_index, target_index))
+
+        # 手动触发鼠标释放事件
+        mouse_release_event = QtGui.QMouseEvent(
+            QtCore.QEvent.MouseButtonRelease,
+            QtGui.QCursor.pos(),
+            QtCore.Qt.LeftButton,
+            QtCore.Qt.LeftButton,
+            QtCore.Qt.NoModifier
+        )
+        QtCore.QCoreApplication.instance().sendEvent(self.dragging_card.buttons[1], mouse_release_event)
 
         self.dragging_card.setOpacity(1.0)
         self.dragging_card = None
