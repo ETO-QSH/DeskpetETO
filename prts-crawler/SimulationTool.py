@@ -334,6 +334,6 @@ if __name__ == "__main__":
     data = {}
     for key, value in List.items():
         scraper = WebScraper()
-        data[key] = scraper.get_one_brand_infor(value).keys()
+        data[key] = list(scraper.get_one_brand_infor(value).keys())
     with open(f"brands.json", "w", encoding="utf-8") as file:
         json.dump(data, file, indent=4, ensure_ascii=False)
