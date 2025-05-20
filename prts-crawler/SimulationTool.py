@@ -328,5 +328,12 @@ class WebScraper:
 
 
 if __name__ == "__main__":
+    import json
     scraper = WebScraper()
-    print(scraper.get_side_story_lite())
+    List = scraper.get_skin_brand_list()
+    data = {}
+    for key, value in List.items():
+        scraper = WebScraper()
+        data[key] = scraper.get_one_brand_infor(value).keys()
+    with open(f"brands.json", "w", encoding="utf-8") as file:
+        json.dump(data, file, indent=4, ensure_ascii=False)
