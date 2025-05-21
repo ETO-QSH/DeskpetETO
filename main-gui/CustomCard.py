@@ -189,6 +189,7 @@ class CustomCard(ElevatedCardWidget):
 
 class AddCard(QWidget):
     cardRequested = QtCore.pyqtSignal(str, str, str, str)  # agent, skin, model, image_path
+    switchToFilter = QtCore.pyqtSignal()  # 新增切换信号
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -292,7 +293,7 @@ class AddCard(QWidget):
         self.verticalLayout.addWidget(btn_container)
 
     def turn_2_filter(self):
-        pass
+        self.switchToFilter.emit()
 
     def clear_selections(self):
         """清空所有选择"""
@@ -413,13 +414,17 @@ class AddCard(QWidget):
 
 
 class FilterCard(QWidget):
+    switchToAdd = QtCore.pyqtSignal()  # 新增切换信号
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.resize(520, 120)
         self.data = {}  # 存储加载的JSON数据
         self.init_ui()
         self.load_combo_data()
-        self._load_brands()
+        self.load_brands()
+        self.combo_model.addItems(["基建", "正面", "背面"])
+        self.combo_model.setCurrentIndex(-1)
         self.clear_selections()
 
     def init_ui(self):
@@ -513,9 +518,12 @@ class FilterCard(QWidget):
         self.verticalLayout.addWidget(btn_container)
 
     def turn_2_add(self):
-        pass
+        self.switchToAdd.emit()
 
     def clear_filter_cards(self):
+        pass
+
+    def on_filter_clicked(self):
         pass
 
     def clear_selections(self):
@@ -535,10 +543,12 @@ class FilterCard(QWidget):
         except Exception as e:
             print(f"加载JSON数据失败: {e}")
 
-    def _load_brands(self):
+    def load_brands(self):
         """加载品牌数据"""
         try:
             with open(r".\resource\brands.json", "r", encoding="utf-8") as f:
                 self.brands = ["默认"] + list(json.load(f).keys())
+            self.combo_skin.addItems(self.brands)
+            self.combo_skin.setCurrentIndex(-1)
         except Exception as e:
             print(f"加载品牌数据失败: {e}")

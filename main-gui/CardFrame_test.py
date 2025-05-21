@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from DeskpetETO.CustomCard import CustomCard, AddCard
+from DeskpetETO.CustomCard import CustomCard, AddCard, FilterCard
 from qfluentwidgets import SmoothScrollArea
 from uuid import uuid4
 import json
@@ -61,11 +61,8 @@ class Ui_CardFrame(object):
         self.verticalLayout.addWidget(self.SmoothScrollArea)
         self.card_manager = CardManager()
 
-        self.AddCardWidget = AddCard(self.widget)
-        self.AddCardWidget.setObjectName("AddCardWidget")
-        self.AddCardWidget.setMinimumSize(QtCore.QSize(540, 120))
-        self.AddCardWidget.setMaximumSize(QtCore.QSize(540, 120))
-        self.verticalLayout.addWidget(self.AddCardWidget, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.current_card_widget = None
+        self.show_add_card()
 
         # 拖拽相关初始化
         self.dragging_card = None
@@ -77,8 +74,40 @@ class Ui_CardFrame(object):
         # 加载一些乱七八糟的数据
         self.load_brands_data()
 
-        # 设置 AddCard 的信号连接
+    def show_add_card(self):
+        """显示添加卡片组件"""
+        if self.current_card_widget:
+            self._remove_current_card()
+
+        self.AddCardWidget = AddCard(self.widget)
+        self.AddCardWidget.setObjectName("AddCardWidget")
+        self.AddCardWidget.setMinimumSize(QtCore.QSize(540, 120))
+        self.AddCardWidget.setMaximumSize(QtCore.QSize(540, 120))
+        # 连接信号
+        self.AddCardWidget.switchToFilter.connect(self.show_filter_card)
         self.AddCardWidget.cardRequested.connect(self.handle_add_card_request)
+        self.verticalLayout.addWidget(self.AddCardWidget, 0, QtCore.Qt.AlignCenter)
+        self.current_card_widget = self.AddCardWidget
+
+    def show_filter_card(self):
+        """显示筛选卡片组件"""
+        if self.current_card_widget:
+            self._remove_current_card()
+
+        self.FilterCardWidget = FilterCard(self.widget)
+        self.FilterCardWidget.setObjectName("FilterCardWidget")
+        self.FilterCardWidget.setMinimumSize(QtCore.QSize(540, 120))
+        self.FilterCardWidget.setMaximumSize(QtCore.QSize(540, 120))
+        # 连接信号
+        self.FilterCardWidget.switchToAdd.connect(self.show_add_card)
+        self.verticalLayout.addWidget(self.FilterCardWidget, 0, QtCore.Qt.AlignCenter)
+        self.current_card_widget = self.FilterCardWidget
+
+    def _remove_current_card(self):
+        """移除当前卡片组件"""
+        self.verticalLayout.removeWidget(self.current_card_widget)
+        self.current_card_widget.deleteLater()
+        self.current_card_widget = None
 
     def _update_scroll_area(self):
         """更新滚动区域高度"""
