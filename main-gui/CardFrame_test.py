@@ -6,7 +6,7 @@ from qfluentwidgets import SmoothScrollArea
 from uuid import uuid4
 import json
 import copy
-import os
+import sys
 
 
 class CardManager(QtCore.QObject):
@@ -76,6 +76,9 @@ class Ui_CardFrame(object):
 
         # 加载一些乱七八糟的数据
         self.load_brands_data()
+
+        # 设置 AddCard 的信号连接
+        self.AddCardWidget.cardRequested.connect(self.handle_add_card_request)
 
     def _update_scroll_area(self):
         """更新滚动区域高度"""
@@ -397,6 +400,17 @@ class Ui_CardFrame(object):
                 return card_id
         return None
 
+    def handle_add_card_request(self, agent, skin, model, image_path):
+        """处理添加卡片请求"""
+        card_data = {
+            "agent": agent,
+            "skin": skin,
+            "model": model,
+            "image": image_path
+        }
+        self.add_card(card_data, 0)  # 添加卡片并自动滑动到顶部
+        self.SmoothScrollArea.verticalScrollBar().setValue(0)  # 触发滚动到顶部
+
 
 class TestWindow(QtWidgets.QWidget):
     def __init__(self):
@@ -427,9 +441,6 @@ class TestWindow(QtWidgets.QWidget):
             }
         """)
         self.ui.scrollContent.layout().addWidget(self.ui.drop_line)
-
-        # 设置 AddCard 的行为
-        self.ui.AddCardWidget.btn_add.clicked.connect(self._add_card_from_add_card)
 
     def _add_sample_cards(self):
         # 添加示例卡片（带图片路径）
@@ -491,29 +502,8 @@ class TestWindow(QtWidgets.QWidget):
         btn_delete_all.clicked.connect(lambda: self.ui.batch_remove(self.ui.card_manager.card_order.copy()))
         btn_delete_all.move(10, 5)
 
-    def _add_card_from_add_card(self):
-        # 从 AddCard 获取数据并添加卡片
-        agent = self.ui.AddCardWidget.combo_agent.currentText()
-        skin = self.ui.AddCardWidget.combo_skin.currentText()
-        model = self.ui.AddCardWidget.combo_model.currentText()
-        image_path = self.ui.AddCardWidget.data.get(agent, {}).get(skin, {}).get("head", "")
-
-        if agent and skin and model and image_path:
-            card_data = {
-                "agent": agent,
-                "skin": skin,
-                "model": model,
-                "image": os.path.join("./resource", image_path)
-            }
-            self.ui.add_card(card_data, 0)  # 添加卡片并自动滑动到顶部
-            self.ui.SmoothScrollArea.verticalScrollBar().setValue(0)  # 触发滚动到顶部
-        else:
-            self.ui.AddCardWidget.show_warning_flyout()
-
 
 if __name__ == '__main__':
-    import sys
-
     app = QtWidgets.QApplication(sys.argv)
 
     window = TestWindow()

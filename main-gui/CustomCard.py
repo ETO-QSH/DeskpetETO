@@ -188,9 +188,10 @@ class CustomCard(ElevatedCardWidget):
 
 
 class AddCard(QWidget):
+    cardRequested = QtCore.pyqtSignal(str, str, str, str)  # agent, skin, model, image_path
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("添加卡片 - 预览")
         self.resize(520, 120)
         self.data = {}  # 存储加载的JSON数据
         self.init_ui()
@@ -214,7 +215,7 @@ class AddCard(QWidget):
         # 下拉框
         self.combo_agent = EditableComboBox()
         self.combo_agent.setPlaceholderText("选择干员")
-        self.combo_agent.setFixedSize(135, 45)  # 固定尺寸
+        self.combo_agent.setFixedSize(135, 45)
         self.combo_agent.currentTextChanged.connect(self.on_agent_changed)
         self.combo_agent.setMaxVisibleItems(6)
         self.horizontalLayout.addWidget(self.combo_agent)
@@ -266,15 +267,15 @@ class AddCard(QWidget):
 
         # 添加按钮
         self.btn_add = PrimaryPushButton("添加卡片")
-        self.btn_add.setIcon(FluentIcon.ADD)
+        self.btn_add.setIcon(FluentIcon.ADD_TO)
         self.btn_add.setFixedSize(240, 45)
         self.btn_add.clicked.connect(self.on_add_clicked)
 
         # 清空按钮
-        self.btn_clear = ToolButton()
-        self.btn_clear.setIcon(FluentIcon.CLOSE)
-        self.btn_clear.setFixedSize(80, 40)
-        self.btn_clear.clicked.connect(self.clear_selections)
+        self.btn_filter = ToolButton()
+        self.btn_filter.setIcon(FluentIcon.FILTER)
+        self.btn_filter.setFixedSize(80, 40)
+        self.btn_filter.clicked.connect(self.turn_2_filter)
 
         # 按钮布局
         btn_layout.addStretch()
@@ -282,13 +283,16 @@ class AddCard(QWidget):
         btn_layout.addSpacing(15)
         btn_layout.addWidget(self.btn_add)
         btn_layout.addSpacing(15)
-        btn_layout.addWidget(self.btn_clear)
+        btn_layout.addWidget(self.btn_filter)
         btn_layout.addStretch()
 
         # ================== 最终布局组装 ==================
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.verticalLayout.addStretch()
         self.verticalLayout.addWidget(btn_container)
+
+    def turn_2_filter(self):
+        pass
 
     def clear_selections(self):
         """清空所有选择"""
@@ -337,7 +341,6 @@ class AddCard(QWidget):
             self.combo_skin.setCurrentIndex(0)
             self.on_skin_changed(self.combo_skin.getCurrentText())
 
-
     def on_skin_changed(self, skin):
         """皮肤选择变化事件"""
         self.combo_model.clear()
@@ -382,14 +385,9 @@ class AddCard(QWidget):
             self.show_error_flyout()
             return
 
-        card_data = {
-            "agent": agent,
-            "skin": skin,
-            "model": model,
-            "image": image_path
-        }
-
-        print("添加卡片数据:", card_data)
+        # 发射信号而不是直接操作UI
+        self.cardRequested.emit(agent, skin, model, image_path)
+        self.clear_selections()
 
     def show_warning_flyout(self):
         Flyout.create(
@@ -412,3 +410,135 @@ class AddCard(QWidget):
             aniType=FlyoutAnimationType.PULL_UP,
             isClosable=True
         )
+
+
+class FilterCard(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.resize(520, 120)
+        self.data = {}  # 存储加载的JSON数据
+        self.init_ui()
+        self.load_combo_data()
+        self._load_brands()
+        self.clear_selections()
+
+    def init_ui(self):
+        # 主卡片容器
+        self.card = QWidget(self)
+        self.card.setGeometry(0, 0, 520, 120)
+
+        # 垂直布局（主布局）
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.card)
+        self.verticalLayout.addStretch()
+        self.verticalLayout.setContentsMargins(28, 8, 16, 16)
+
+        # 水平布局（核心调整部分）
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+
+        # ================== 第一组（干员选择） ==================
+
+        # 下拉框
+        self.combo_agent = EditableComboBox()
+        self.combo_agent.setPlaceholderText("选择干员")
+        self.combo_agent.setFixedSize(135, 45)
+        self.combo_agent.setMaxVisibleItems(6)
+        self.horizontalLayout.addWidget(self.combo_agent)
+
+        # 第一个弹簧和徽章
+        self.horizontalLayout.addStretch()
+        self.badge1 = TransparentToolButton(FluentIcon.IOT)
+        self.badge1.setFixedSize(25, 25)
+        self.horizontalLayout.addWidget(self.badge1, 0, Qt.AlignCenter)
+        self.horizontalLayout.addStretch()
+
+        # ================== 第二组（皮肤选择） ==================
+
+        self.combo_skin = EditableComboBox()
+        self.combo_skin.setPlaceholderText("选择品牌")
+        self.combo_skin.setFixedSize(135, 45)
+        self.combo_skin.setMaxVisibleItems(6)
+        self.horizontalLayout.addWidget(self.combo_skin)
+
+        # 第二个弹簧和徽章
+        self.horizontalLayout.addStretch()
+        self.badge2 = TransparentToolButton(FluentIcon.IOT)
+        self.badge2.setFixedSize(25, 25)
+        self.horizontalLayout.addWidget(self.badge2, 0, Qt.AlignCenter)
+        self.horizontalLayout.addStretch()
+
+        # ================== 第三组（模型选择） ==================
+
+        self.combo_model = EditableComboBox()
+        self.combo_model.setPlaceholderText("选择模型")
+        self.combo_model.setFixedSize(135, 45)
+        self.combo_model.setMaxVisibleItems(6)
+        self.horizontalLayout.addWidget(self.combo_model)
+
+        # ================== 添加按钮 ==================
+        btn_container = QWidget()
+        btn_layout = QtWidgets.QHBoxLayout(btn_container)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+        btn_layout.setSpacing(8)
+
+        # 清空按钮
+        self.btn_clear = ToolButton()
+        self.btn_clear.setIcon(FluentIcon.DELETE)
+        self.btn_clear.setFixedSize(80, 40)
+        self.btn_clear.clicked.connect(self.clear_filter_cards)
+
+        # 筛选按钮
+        self.btn_filter = PrimaryPushButton("筛选卡片")
+        self.btn_filter.setIcon(FluentIcon.FILTER)
+        self.btn_filter.setFixedSize(240, 45)
+        self.btn_filter.clicked.connect(self.on_filter_clicked)
+
+        # 添加按钮
+        self.btn_add = ToolButton()
+        self.btn_add.setIcon(FluentIcon.ADD_TO)
+        self.btn_add.setFixedSize(80, 40)
+        self.btn_add.clicked.connect(self.turn_2_add)
+
+        # 按钮布局
+        btn_layout.addStretch()
+        btn_layout.addWidget(self.btn_clear)
+        btn_layout.addSpacing(15)
+        btn_layout.addWidget(self.btn_filter)
+        btn_layout.addSpacing(15)
+        btn_layout.addWidget(self.btn_add)
+        btn_layout.addStretch()
+
+        # ================== 最终布局组装 ==================
+        self.verticalLayout.addLayout(self.horizontalLayout)
+        self.verticalLayout.addStretch()
+        self.verticalLayout.addWidget(btn_container)
+
+    def turn_2_add(self):
+        pass
+
+    def clear_filter_cards(self):
+        pass
+
+    def clear_selections(self):
+        """清空所有选择"""
+        self.combo_agent.setCurrentIndex(-1)
+        self.combo_skin.setCurrentIndex(-1)
+        self.combo_model.setCurrentIndex(-1)
+
+    def load_combo_data(self):
+        """加载JSON数据并初始化干员列表"""
+        try:
+            with open(r".\resource\saves.json", "r", encoding="utf-8") as f:
+                self.data = json.load(f)
+            agents = list(self.data.keys())
+            self.combo_agent.addItems(agents)
+            self.combo_agent.setCurrentIndex(-1)
+        except Exception as e:
+            print(f"加载JSON数据失败: {e}")
+
+    def _load_brands(self):
+        """加载品牌数据"""
+        try:
+            with open(r".\resource\brands.json", "r", encoding="utf-8") as f:
+                self.brands = ["默认"] + list(json.load(f).keys())
+        except Exception as e:
+            print(f"加载品牌数据失败: {e}")
