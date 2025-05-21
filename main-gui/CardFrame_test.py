@@ -507,7 +507,6 @@ class Ui_CardFrame(object):
 
         self.scrollContent.setMinimumHeight(total_height)
         self.scrollContent.setMaximumHeight(total_height)
-        self.SmoothScrollArea.verticalScrollBar().setValue(0)
 
     def _get_card_id_by_widget(self, widget):
         # 根据部件查找卡片ID
