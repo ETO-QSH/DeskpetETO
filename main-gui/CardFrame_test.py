@@ -289,19 +289,24 @@ class Ui_CardFrame(object):
 
             # 自动滚动
             scroll_bar = self.SmoothScrollArea.verticalScrollBar()
-            viewport_height = self.SmoothScrollArea.height()
+            viewport_height = self.SmoothScrollArea.viewport().height()  # 获取视口高度
             y_pos = event.pos().y()
-            margin = viewport_height * 2 // 3
 
-            # 计算相对位置百分比
-            if y_pos < margin:
-                # 向上滚动：根据接近顶部的程度调整速度
-                speed = int((1 - y_pos / margin) * 10)
-                scroll_bar.setValue(scroll_bar.value() - speed)
-            elif y_pos > viewport_height - margin:
-                # 向下滚动：根据接近底部的程度调整速度
-                speed = int(((y_pos - (viewport_height - margin)) / margin) * 10)
-                scroll_bar.setValue(scroll_bar.value() + speed)
+            # 获取当前视口在内容中的实际位置
+            current_scroll = scroll_bar.value()
+            total_height = self.scrollContent.height()
+
+            # 计算当前视口在内容中的中间位置
+            viewport_top = current_scroll
+            viewport_bottom = current_scroll + viewport_height
+            viewport_center = viewport_top + viewport_bottom / 2
+
+            # 计算鼠标位置相对于视口的比例
+            relative_y = (y_pos * (total_height / (total_height - 80)) - viewport_center) / viewport_height
+
+            # 根据鼠标位置相对于视口中点的位置决定滚动方向和速度
+            speed = int(relative_y * 25)
+            scroll_bar.setValue(current_scroll + speed)
         else:
             self.drop_line.hide()
 
@@ -429,7 +434,7 @@ class TestWindow(QtWidgets.QWidget):
     def _add_sample_cards(self):
         # 添加示例卡片（带图片路径）
         self.ui.add_card({
-            'agent': '阿米娅',
+            'agent': '阿米娅(医疗)',
             'skin': '寰宇独奏',
             'model': '基建',
             'image': r".\resource\img\寰宇独奏.png"
