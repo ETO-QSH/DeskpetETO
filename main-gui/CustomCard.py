@@ -34,6 +34,7 @@ class CustomCard(ElevatedCardWidget):
 
         # 为移动按钮添加拖拽支持
         self.buttons[1].installEventFilter(self)  # 索引1是移动按钮
+        self._current_mode = "ADD"  # 默认模式
 
     def _init_ui(self):
         self.setFixedSize(520, 120)
@@ -122,6 +123,17 @@ class CustomCard(ElevatedCardWidget):
         theme = Theme.DARK if isDarkTheme() else Theme.LIGHT
         for btn, fluent_icon in zip(self.buttons, icons):
             btn.setIcon(fluent_icon.icon(theme))
+
+    def update_button_icon(self, mode):
+        """根据模式更新第二个按钮的图标"""
+        self._current_mode = mode
+        new_icons = [
+            FluentIcon.COPY,
+            FluentIcon.MOVE if mode == "ADD" else FluentIcon.REMOVE_FROM,
+            FluentIcon.RINGER,
+            FluentIcon.DELETE
+        ]
+        self.set_button_icons(new_icons)
 
     def set_text(self, agent, skin, model):
         """设置文本内容"""

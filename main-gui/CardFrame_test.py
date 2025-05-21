@@ -68,6 +68,7 @@ class Ui_CardFrame(object):
         self.card_manager = CardManager()
 
         self.current_card_widget = None
+        self.SHOW_CARD = "ADD"
         self.show_add_card()
 
         # 拖拽相关初始化
@@ -100,6 +101,9 @@ class Ui_CardFrame(object):
         self.verticalLayout.addWidget(self.AddCardWidget, 0, QtCore.Qt.AlignCenter)
         self.current_card_widget = self.AddCardWidget
 
+        self.SHOW_CARD = "ADD"
+        self._update_all_card_icons()  # 新增状态更新
+
     def show_filter_card(self):
         """显示筛选卡片组件"""
         if self.current_card_widget:
@@ -116,6 +120,9 @@ class Ui_CardFrame(object):
         self.FilterCardWidget.switchToAdd.connect(self.show_add_card)
         self.verticalLayout.addWidget(self.FilterCardWidget, 0, QtCore.Qt.AlignCenter)
         self.current_card_widget = self.FilterCardWidget
+
+        self.SHOW_CARD = "FILTER"
+        self._update_all_card_icons()  # 新增状态更新
 
     def _remove_current_card(self):
         """移除当前卡片组件"""
@@ -151,6 +158,7 @@ class Ui_CardFrame(object):
         card_widget.buttons[1].installEventFilter(card_widget)  # 确保事件过滤器
 
         card_widget.set_image(card_data['image'])
+        card_widget.update_button_icon(self.SHOW_CARD)
         card_widget.set_text(card_data['agent'], card_data['skin'], card_data['model'])
         card_widget.btnClicked.connect(lambda idx, cid=card_id: self._handle_button(cid, idx))
 
@@ -279,6 +287,8 @@ class Ui_CardFrame(object):
             widget = self.card_manager.cards[card_id]['widget']
             widget.setVisible(card_id in filtered_ids)
 
+        self._reorder_layout()
+
     def batch_remove(self, card_ids):
         """批量删除卡片"""
         for card_id in card_ids:
@@ -303,9 +313,12 @@ class Ui_CardFrame(object):
 
         # 清空筛选条件
         self.FilterCardWidget.clear_selections()
+
         # 显示所有剩余卡片
         for card_id in self.card_manager.card_order:
             self.card_manager.cards[card_id]['widget'].show()
+
+        self._reorder_layout()
 
     def duplicate_card(self, card_id):
         """改进的复制方法"""
@@ -353,9 +366,16 @@ class Ui_CardFrame(object):
         self.scrollContent.dragMoveEvent = self.dragMoveEvent
         self.scrollContent.dropEvent = self.dropEvent
 
+    def _update_all_card_icons(self):
+        """更新所有卡片的按钮图标"""
+        for card_id in self.card_manager.card_order:
+            card = self.card_manager.cards[card_id]['widget']
+            card.update_button_icon(self.SHOW_CARD)
+
     def handle_drag_start(self, card_widget):
-        # 记录当前拖拽的卡片
-        self.dragging_card = card_widget
+        if self.SHOW_CARD == "FILTER":
+            return
+        self.dragging_card = card_widget  # 记录当前拖拽的卡片
         self.dragging_card.setOpacity(2/3)  # 设置半透明效果
 
     def dragEnterEvent(self, event):
@@ -475,7 +495,31 @@ class Ui_CardFrame(object):
 
         for card_id in temp_order:
             widget = self.card_manager.cards[card_id]['widget']
-            self.mainLayout.addWidget(widget)
+            if widget.isVisible():
+                self.mainLayout.addWidget(widget)
+
+        # 按顺序添加可见卡片
+        visible_count = 0
+        for card_id in self.card_manager.card_order:
+            widget = self.card_manager.cards[card_id]['widget']
+            if widget.isVisible():
+                self.mainLayout.addWidget(widget)
+                visible_count += 1
+            else:
+                widget.hide()
+
+        # 调整滚动区域高度（动态计算）
+        card_height = 120  # 单个卡片高度
+        spacing = self.mainLayout.spacing()  # 获取布局间距
+        margin_top, _, margin_bottom, _ = self.mainLayout.getContentsMargins()
+
+        total_height = (visible_count * card_height +
+                        max(0, visible_count - 1) * spacing +
+                        margin_top + margin_bottom)
+
+        self.scrollContent.setMinimumHeight(total_height)
+        self.scrollContent.setMaximumHeight(total_height)
+        self.SmoothScrollArea.verticalScrollBar().setValue(0)
 
     def _get_card_id_by_widget(self, widget):
         # 根据部件查找卡片ID
