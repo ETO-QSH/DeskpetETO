@@ -158,6 +158,10 @@ class Ui_CardFrame(object):
         card_widget.set_text(card_data['agent'], card_data['skin'], card_data['model'])
         card_widget.btnClicked.connect(lambda idx, cid=card_id: self._handle_button(cid, idx))
 
+        # 两面包夹芝士！
+        if hasattr(self, 'FilterCardWidget'):
+            self._handle_filter_clicked()
+
         # 确定插入位置
         position = position if position is not None else len(self.card_manager.card_order)
 
@@ -172,6 +176,10 @@ class Ui_CardFrame(object):
         self.card_manager._update_indices(position)
         self._update_scroll_area()
         self.card_manager.card_added.emit(card_id)
+
+        # 两面包夹芝士！
+        if hasattr(self, 'FilterCardWidget'):
+            self._handle_filter_clicked()
         return card_id
 
     def _handle_button(self, card_id, btn_index):
@@ -183,13 +191,17 @@ class Ui_CardFrame(object):
             self.ringer_card(card_id)
         elif btn_index == 3:  # 删除按钮
             self.remove_card(card_id)
-        else:                 # 移动按钮
+        else:  # 移动按钮
             pass
 
     def remove_card(self, card_id):
         """删除指定卡片"""
         if card_id not in self.card_manager.cards:
             return False
+
+        # 两面包夹芝士！
+        if hasattr(self, 'FilterCardWidget'):
+            self._handle_filter_clicked()
 
         # 获取位置
         position = self.card_manager.card_order.index(card_id)
@@ -207,6 +219,10 @@ class Ui_CardFrame(object):
         self.card_manager._update_indices(position)
         self._update_scroll_area()
         self.card_manager.card_removed.emit(card_id)
+
+        # 两面包夹芝士！
+        if hasattr(self, 'FilterCardWidget'):
+            self._handle_filter_clicked()
         return True
 
     def update_card(self, card_id, **kwargs):
@@ -276,12 +292,9 @@ class Ui_CardFrame(object):
             widget = self.card_manager.cards[card_id]['widget']
             widget.setVisible(card_id in filtered_ids)
 
+        # 啊哈 ~
         self._reorder_layout()
-
-    def batch_remove(self, card_ids):
-        """批量删除卡片"""
-        for card_id in card_ids:
-            self.remove_card(card_id)
+        self._reorder_layout()
 
     def _handle_clear_filter(self):
         """处理清空筛选操作（删除当前筛选结果）"""
@@ -293,8 +306,8 @@ class Ui_CardFrame(object):
         filtered_ids = self.filter_cards(agent=agent, brand=brand, model=model)
 
         # 批量删除
-        if filtered_ids:
-            self.batch_remove(filtered_ids)
+        for card_id in filtered_ids:
+            self.remove_card(card_id)
 
         # 清空筛选条件
         self.FilterCardWidget.clear_selections()

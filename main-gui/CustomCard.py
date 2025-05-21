@@ -2,7 +2,7 @@ import os
 import json
 
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtGui import QPixmap, QFont, QFontDatabase
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QFrame, QVBoxLayout
 
@@ -101,7 +101,18 @@ class CustomCard(ElevatedCardWidget):
 
     def _init_style(self):
         # 根据主题设置图标颜色
-        self.iconBadge.setProperty('isDark', isDarkTheme())
+        self.iconBadge.setProperty('isDark', isDarkTheme())# 加载自定义字体
+
+        # font_id = QFontDatabase.addApplicationFont(r".\resource\font\Lolita.ttf")
+        # if font_id != -1:
+        #     font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+        #     font = QFont(font_family)
+        # else:
+        #     print("Failed to load font")
+        #
+        # font_11 = QFont(font)
+        # font_11.setPointSize(11)
+        # self.bodyLabel.setFont(font_11)
 
         # 设置字体
         font = self.bodyLabel.font()
