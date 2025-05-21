@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QFontDatabase, QFont
 
 from DeskpetETO.CustomCard import CustomCard, AddCard, FilterCard
 from qfluentwidgets import SmoothScrollArea
@@ -32,9 +33,14 @@ class Ui_CardFrame(object):
         CardFrame.setMinimumSize(QtCore.QSize(540, 810))
         CardFrame.setMaximumSize(QtCore.QSize(540, 810))
 
-        font = QtGui.QFont()
-        font.setFamily("萝莉体")
-        CardFrame.setFont(font)
+        # 加载自定义字体
+        font_id = QFontDatabase.addApplicationFont(r".\resource\font\Lolita.ttf")
+        if font_id != -1:
+            font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+            font = QFont(font_family)
+            CardFrame.setFont(font)
+        else:
+            print("Failed to load font")
 
         self.widget = QtWidgets.QWidget(CardFrame)
         self.widget.setGeometry(QtCore.QRect(0, 0, 540, 810))
@@ -83,6 +89,11 @@ class Ui_CardFrame(object):
         self.AddCardWidget.setObjectName("AddCardWidget")
         self.AddCardWidget.setMinimumSize(QtCore.QSize(540, 120))
         self.AddCardWidget.setMaximumSize(QtCore.QSize(540, 120))
+
+        # 重置筛选显示所有卡片
+        for card_id in self.card_manager.card_order:
+            self.card_manager.cards[card_id]['widget'].show()
+
         # 连接信号
         self.AddCardWidget.switchToFilter.connect(self.show_filter_card)
         self.AddCardWidget.cardRequested.connect(self.handle_add_card_request)
@@ -98,7 +109,10 @@ class Ui_CardFrame(object):
         self.FilterCardWidget.setObjectName("FilterCardWidget")
         self.FilterCardWidget.setMinimumSize(QtCore.QSize(540, 120))
         self.FilterCardWidget.setMaximumSize(QtCore.QSize(540, 120))
+
         # 连接信号
+        self.FilterCardWidget.btn_filter.clicked.connect(self._handle_filter_clicked)
+        self.FilterCardWidget.btn_clear.clicked.connect(self._handle_clear_filter)
         self.FilterCardWidget.switchToAdd.connect(self.show_add_card)
         self.verticalLayout.addWidget(self.FilterCardWidget, 0, QtCore.Qt.AlignCenter)
         self.current_card_widget = self.FilterCardWidget
@@ -247,10 +261,51 @@ class Ui_CardFrame(object):
 
         return results
 
+    def _handle_filter_clicked(self):
+        """处理筛选按钮点击"""
+        agent = self.FilterCardWidget.combo_agent.currentText() or None
+        brand = self.FilterCardWidget.combo_skin.currentText() or None
+        model = self.FilterCardWidget.combo_model.currentText() or None
+
+        # 执行筛选
+        filtered_ids = self.filter_cards(
+            agent=agent,
+            brand=brand,
+            model=model
+        )
+
+        # 显示/隐藏卡片
+        for card_id in self.card_manager.card_order:
+            widget = self.card_manager.cards[card_id]['widget']
+            widget.setVisible(card_id in filtered_ids)
+
     def batch_remove(self, card_ids):
         """批量删除卡片"""
         for card_id in card_ids:
             self.remove_card(card_id)
+
+    def _handle_clear_filter(self):
+        """处理清空筛选操作（删除当前筛选结果）"""
+        agent = self.FilterCardWidget.combo_agent.currentText() or None
+        brand = self.FilterCardWidget.combo_skin.currentText() or None
+        model = self.FilterCardWidget.combo_model.currentText() or None
+
+        # 获取最新筛选结果
+        filtered_ids = self.filter_cards(
+            agent=agent,
+            brand=brand,
+            model=model
+        )
+
+        # 批量删除
+        if filtered_ids:
+            self.batch_remove(filtered_ids)
+
+        # 清空筛选条件
+        self.FilterCardWidget.clear_selections()
+        # 显示所有剩余卡片
+        for card_id in self.card_manager.card_order:
+            self.card_manager.cards[card_id]['widget'].show()
 
     def duplicate_card(self, card_id):
         """改进的复制方法"""
@@ -456,9 +511,6 @@ class TestWindow(QtWidgets.QWidget):
         # 添加测试数据
         self._add_sample_cards()
 
-        # 添加控制面板
-        # self._setup_controls()
-
         # 启用拖拽功能
         self.ui.enable_drag_drop()
 
@@ -521,15 +573,6 @@ class TestWindow(QtWidgets.QWidget):
             'model': '基建',
             'image': r".\resource\img\远行前的野餐.png"
         })
-
-    def _setup_controls(self):
-        panel = QtWidgets.QWidget(self)
-        panel.setGeometry(90, 720, 540, 90)
-
-        # 操作按钮
-        btn_delete_all = QtWidgets.QPushButton("删除所有", panel)
-        btn_delete_all.clicked.connect(lambda: self.ui.batch_remove(self.ui.card_manager.card_order.copy()))
-        btn_delete_all.move(10, 5)
 
 
 if __name__ == '__main__':

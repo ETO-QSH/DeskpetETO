@@ -1,10 +1,10 @@
 import os
 import json
 
-from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtGui import QPixmap
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QFrame, QVBoxLayout
 
 from qfluentwidgets import (
     ElevatedCardWidget, BodyLabel, ToolButton, FluentIcon, Theme, isDarkTheme, ImageLabel,
@@ -14,7 +14,7 @@ from qfluentwidgets import (
 
 class CustomCard(ElevatedCardWidget):
     btnClicked = pyqtSignal(int)  # 按钮索引信号
-    dragStarted = pyqtSignal(QtWidgets.QWidget)  # 新增拖拽信号
+    dragStarted = pyqtSignal(QWidget)  # 新增拖拽信号
 
     def __init__(self, card_id, parent=None):
         super().__init__(parent)
@@ -37,11 +37,11 @@ class CustomCard(ElevatedCardWidget):
 
     def _init_ui(self):
         self.setFixedSize(520, 120)
-        self.mainWidget = QtWidgets.QWidget(self)
+        self.mainWidget = QWidget(self)
         self.mainWidget.setGeometry(0, 0, 520, 120)
 
         # 使用水平布局
-        self.hLayout = QtWidgets.QHBoxLayout(self.mainWidget)
+        self.hLayout = QHBoxLayout(self.mainWidget)
         self.hLayout.setContentsMargins(16, 8, 16, 8)
         self.hLayout.setSpacing(16)
 
@@ -52,15 +52,15 @@ class CustomCard(ElevatedCardWidget):
         self.hLayout.addWidget(self.iconBadge)
 
         # 添加分隔线
-        self.separator = QtWidgets.QFrame()
-        self.separator.setFrameShape(QtWidgets.QFrame.VLine)
-        self.separator.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.separator = QFrame()
+        self.separator.setFrameShape(QFrame.VLine)
+        self.separator.setFrameShadow(QFrame.Sunken)
         self.separator.setStyleSheet("color: #606060; border: 0px")
         self.separator.setFixedWidth(16)
         self.hLayout.addWidget(self.separator)
 
         # 文字区域
-        self.textLayout = QtWidgets.QVBoxLayout()
+        self.textLayout = QVBoxLayout()
         self.bodyLabel = BodyLabel()
         self.bodyLabel.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
@@ -72,7 +72,7 @@ class CustomCard(ElevatedCardWidget):
         self.hLayout.addLayout(self.textLayout)
 
         # 按钮区域
-        self.btnLayout = QtWidgets.QGridLayout()
+        self.btnLayout = QGridLayout()
         self.btnLayout.setContentsMargins(0, 0, 0, 0)  # 移除边距
         self.buttons = []
         for i in range(4):
@@ -93,7 +93,7 @@ class CustomCard(ElevatedCardWidget):
             self.btnLayout.addWidget(btn, i // 2, i % 2)
 
         # 在按钮布局外包裹一个容器调整边距
-        btn_container = QtWidgets.QWidget()
+        btn_container = QWidget()
         btn_container.setLayout(self.btnLayout)
         self.hLayout.addWidget(btn_container, stretch=0, alignment=Qt.AlignRight)
         self.hLayout.setSpacing(0)  # 调整主布局间距
@@ -204,12 +204,20 @@ class AddCard(QWidget):
         self.card.setGeometry(0, 0, 520, 120)
 
         # 垂直布局（主布局）
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.card)
+        self.verticalLayout = QVBoxLayout(self.card)
         self.verticalLayout.addStretch()
         self.verticalLayout.setContentsMargins(28, 8, 16, 16)
 
         # 水平布局（核心调整部分）
-        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout = QHBoxLayout()
+
+        parent_font = self.parent().font()
+
+        font_8 = QFont(parent_font)
+        font_8.setPointSize(8)
+
+        font_10 = QFont(parent_font)
+        font_10.setPointSize(10)
 
         # ================== 第一组（干员选择） ==================
 
@@ -219,12 +227,14 @@ class AddCard(QWidget):
         self.combo_agent.setFixedSize(135, 45)
         self.combo_agent.currentTextChanged.connect(self.on_agent_changed)
         self.combo_agent.setMaxVisibleItems(6)
+        self.combo_agent.setFont(font_8)
         self.horizontalLayout.addWidget(self.combo_agent)
 
         # 第一个弹簧和徽章
         self.horizontalLayout.addStretch()
         self.badge1 = TransparentToolButton(FluentIcon.CHEVRON_RIGHT)
         self.badge1.setFixedSize(25, 25)
+        self.badge1.setIconSize(QSize(20, 20))
         self.horizontalLayout.addWidget(self.badge1, 0, Qt.AlignCenter)
         self.horizontalLayout.addStretch()
 
@@ -236,12 +246,14 @@ class AddCard(QWidget):
         self.combo_skin.setEnabled(False)  # 初始禁用
         self.combo_skin.currentTextChanged.connect(self.on_skin_changed)
         self.combo_skin.setMaxVisibleItems(6)
+        self.combo_skin.setFont(font_8)
         self.horizontalLayout.addWidget(self.combo_skin)
 
         # 第二个弹簧和徽章
         self.horizontalLayout.addStretch()
         self.badge2 = TransparentToolButton(FluentIcon.CHEVRON_RIGHT)
         self.badge2.setFixedSize(25, 25)
+        self.badge2.setIconSize(QSize(20, 20))
         self.horizontalLayout.addWidget(self.badge2, 0, Qt.AlignCenter)
         self.horizontalLayout.addStretch()
 
@@ -252,11 +264,12 @@ class AddCard(QWidget):
         self.combo_model.setFixedSize(135, 45)
         self.combo_model.setEnabled(False)  # 初始禁用
         self.combo_model.setMaxVisibleItems(6)
+        self.combo_model.setFont(font_8)
         self.horizontalLayout.addWidget(self.combo_model)
 
         # ================== 添加按钮 ==================
         btn_container = QWidget()
-        btn_layout = QtWidgets.QHBoxLayout(btn_container)
+        btn_layout = QHBoxLayout(btn_container)
         btn_layout.setContentsMargins(0, 0, 0, 0)
         btn_layout.setSpacing(8)
 
@@ -267,9 +280,11 @@ class AddCard(QWidget):
         self.btn_reload.clicked.connect(self.load_combo_data)
 
         # 添加按钮
-        self.btn_add = PrimaryPushButton("添加卡片")
+        self.btn_add = PrimaryPushButton(" 添加卡片")
         self.btn_add.setIcon(FluentIcon.ADD_TO)
         self.btn_add.setFixedSize(240, 45)
+        self.btn_add.setFont(font_10)
+        self.btn_add.setIconSize(QSize(20, 20))
         self.btn_add.clicked.connect(self.on_add_clicked)
 
         # 清空按钮
@@ -433,12 +448,20 @@ class FilterCard(QWidget):
         self.card.setGeometry(0, 0, 520, 120)
 
         # 垂直布局（主布局）
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.card)
+        self.verticalLayout = QVBoxLayout(self.card)
         self.verticalLayout.addStretch()
         self.verticalLayout.setContentsMargins(28, 8, 16, 16)
 
         # 水平布局（核心调整部分）
-        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout = QHBoxLayout()
+
+        parent_font = self.parent().font()
+
+        font_8 = QFont(parent_font)
+        font_8.setPointSize(8)
+
+        font_10 = QFont(parent_font)
+        font_10.setPointSize(10)
 
         # ================== 第一组（干员选择） ==================
 
@@ -447,12 +470,14 @@ class FilterCard(QWidget):
         self.combo_agent.setPlaceholderText("选择干员")
         self.combo_agent.setFixedSize(135, 45)
         self.combo_agent.setMaxVisibleItems(6)
+        self.combo_agent.setFont(font_8)
         self.horizontalLayout.addWidget(self.combo_agent)
 
         # 第一个弹簧和徽章
         self.horizontalLayout.addStretch()
         self.badge1 = TransparentToolButton(FluentIcon.IOT)
         self.badge1.setFixedSize(25, 25)
+        self.badge1.setIconSize(QSize(20, 20))
         self.horizontalLayout.addWidget(self.badge1, 0, Qt.AlignCenter)
         self.horizontalLayout.addStretch()
 
@@ -462,12 +487,14 @@ class FilterCard(QWidget):
         self.combo_skin.setPlaceholderText("选择品牌")
         self.combo_skin.setFixedSize(135, 45)
         self.combo_skin.setMaxVisibleItems(6)
+        self.combo_skin.setFont(font_8)
         self.horizontalLayout.addWidget(self.combo_skin)
 
         # 第二个弹簧和徽章
         self.horizontalLayout.addStretch()
         self.badge2 = TransparentToolButton(FluentIcon.IOT)
         self.badge2.setFixedSize(25, 25)
+        self.badge2.setIconSize(QSize(20, 20))
         self.horizontalLayout.addWidget(self.badge2, 0, Qt.AlignCenter)
         self.horizontalLayout.addStretch()
 
@@ -477,11 +504,12 @@ class FilterCard(QWidget):
         self.combo_model.setPlaceholderText("选择模型")
         self.combo_model.setFixedSize(135, 45)
         self.combo_model.setMaxVisibleItems(6)
+        self.combo_model.setFont(font_8)
         self.horizontalLayout.addWidget(self.combo_model)
 
         # ================== 添加按钮 ==================
         btn_container = QWidget()
-        btn_layout = QtWidgets.QHBoxLayout(btn_container)
+        btn_layout = QHBoxLayout(btn_container)
         btn_layout.setContentsMargins(0, 0, 0, 0)
         btn_layout.setSpacing(8)
 
@@ -489,13 +517,13 @@ class FilterCard(QWidget):
         self.btn_clear = ToolButton()
         self.btn_clear.setIcon(FluentIcon.DELETE)
         self.btn_clear.setFixedSize(80, 40)
-        self.btn_clear.clicked.connect(self.clear_filter_cards)
 
         # 筛选按钮
-        self.btn_filter = PrimaryPushButton("筛选卡片")
+        self.btn_filter = PrimaryPushButton(" 卡片筛选")
         self.btn_filter.setIcon(FluentIcon.FILTER)
         self.btn_filter.setFixedSize(240, 45)
-        self.btn_filter.clicked.connect(self.on_filter_clicked)
+        self.btn_filter.setFont(font_10)
+        self.btn_filter.setIconSize(QSize(20, 20))
 
         # 添加按钮
         self.btn_add = ToolButton()
@@ -519,12 +547,6 @@ class FilterCard(QWidget):
 
     def turn_2_add(self):
         self.switchToAdd.emit()
-
-    def clear_filter_cards(self):
-        pass
-
-    def on_filter_clicked(self):
-        pass
 
     def clear_selections(self):
         """清空所有选择"""
