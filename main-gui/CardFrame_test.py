@@ -144,12 +144,8 @@ class Ui_CardFrame(object):
 
         # 深拷贝数据避免引用问题
         card_data = {
-            'id': card_id,
-            'agent': data.get('agent', ''),
-            'skin': data.get('skin', ''),
-            'model': data.get('model', ''),
-            'image': data.get('image', ''),
-            'index': 0
+            'id': card_id, 'agent': data.get('agent', ''), 'skin': data.get('skin', ''),
+            'model': data.get('model', ''), 'image': data.get('image', ''), 'index': 0
         }
 
         # 创建自定义卡片
@@ -166,10 +162,7 @@ class Ui_CardFrame(object):
         position = position if position is not None else len(self.card_manager.card_order)
 
         # 插入到管理器
-        self.card_manager.cards[card_id] = {
-            'widget': card_widget,
-            'data': card_data
-        }
+        self.card_manager.cards[card_id] = {'widget': card_widget, 'data': card_data}
         self.card_manager.card_order.insert(position, card_id)
 
         # 插入到布局
@@ -184,14 +177,14 @@ class Ui_CardFrame(object):
     def _handle_button(self, card_id, btn_index):
         """处理卡片按钮点击"""
         print(f"卡片 {card_id[:8]} 的按钮 {btn_index} 被点击")
-        if btn_index == 0:  # 复制按钮
+        if btn_index == 0:    # 复制按钮
             self.duplicate_card(card_id)
-        elif btn_index == 1:  # 移动按钮
-            pass
         elif btn_index == 2:  # 提醒按钮
             self.ringer_card(card_id)
         elif btn_index == 3:  # 删除按钮
             self.remove_card(card_id)
+        else:                 # 移动按钮
+            pass
 
     def remove_card(self, card_id):
         """删除指定卡片"""
@@ -276,11 +269,7 @@ class Ui_CardFrame(object):
         model = self.FilterCardWidget.combo_model.currentText() or None
 
         # 执行筛选
-        filtered_ids = self.filter_cards(
-            agent=agent,
-            brand=brand,
-            model=model
-        )
+        filtered_ids = self.filter_cards(agent=agent, brand=brand, model=model)
 
         # 显示/隐藏卡片
         for card_id in self.card_manager.card_order:
@@ -301,11 +290,7 @@ class Ui_CardFrame(object):
         model = self.FilterCardWidget.combo_model.currentText() or None
 
         # 获取最新筛选结果
-        filtered_ids = self.filter_cards(
-            agent=agent,
-            brand=brand,
-            model=model
-        )
+        filtered_ids = self.filter_cards(agent=agent, brand=brand, model=model)
 
         # 批量删除
         if filtered_ids:
@@ -338,11 +323,7 @@ class Ui_CardFrame(object):
         new_position = original_pos + 1
 
         # 创建新卡片（使用独立的data副本）
-        return self.add_card(
-            data=original_data,
-            position=new_position,
-            card_id=new_id  # 显式指定新ID
-        )
+        return self.add_card(data=original_data, position=new_position, card_id=new_id)
 
     def ringer_card(self, card_id):
         print("提醒一下喵 ~")
@@ -456,11 +437,8 @@ class Ui_CardFrame(object):
 
         # 手动触发鼠标释放事件
         mouse_release_event = QtGui.QMouseEvent(
-            QtCore.QEvent.MouseButtonRelease,
-            QtGui.QCursor.pos(),
-            QtCore.Qt.LeftButton,
-            QtCore.Qt.LeftButton,
-            QtCore.Qt.NoModifier
+            QtCore.QEvent.MouseButtonRelease, QtGui.QCursor.pos(),
+            QtCore.Qt.LeftButton, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier
         )
         QtCore.QCoreApplication.instance().sendEvent(self.dragging_card.buttons[1], mouse_release_event)
 
@@ -512,10 +490,7 @@ class Ui_CardFrame(object):
         card_height = 120  # 单个卡片高度
         spacing = self.mainLayout.spacing()  # 获取布局间距
         margin_top, _, margin_bottom, _ = self.mainLayout.getContentsMargins()
-
-        total_height = (visible_count * card_height +
-                        max(0, visible_count - 1) * spacing +
-                        margin_top + margin_bottom)
+        total_height = (visible_count * card_height + max(0, visible_count - 1) * spacing + margin_top + margin_bottom)
 
         self.scrollContent.setMinimumHeight(total_height)
         self.scrollContent.setMaximumHeight(total_height)
@@ -530,12 +505,7 @@ class Ui_CardFrame(object):
 
     def handle_add_card_request(self, agent, skin, model, image_path):
         """处理添加卡片请求"""
-        card_data = {
-            "agent": agent,
-            "skin": skin,
-            "model": model,
-            "image": image_path
-        }
+        card_data = {"agent": agent, "skin": skin, "model": model, "image": image_path}
         self.add_card(card_data, 0)  # 添加卡片并自动滑动到顶部
         self.SmoothScrollArea.verticalScrollBar().setValue(0)  # 触发滚动到顶部
 
