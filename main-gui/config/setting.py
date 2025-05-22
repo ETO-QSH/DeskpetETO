@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QFileDialog
 
 from qfluentwidgets import (
-    SettingCardGroup, SwitchSettingCard, OptionsSettingCard, PushSettingCard, FluentIcon, ConfigItem,
+    SettingCardGroup, SwitchSettingCard, PushSettingCard, FluentIcon, ConfigItem, ComboBoxSettingCard,
     ColorSettingCard, ScrollArea, ExpandLayout, Theme, InfoBar, setTheme, setThemeColor, isDarkTheme,
     FolderValidator, BoolValidator, OptionsValidator, OptionsConfigItem, qconfig, QConfig
 )
@@ -39,7 +39,7 @@ class Setting(ScrollArea):
 
         # personalization
         self.personalGroup = SettingCardGroup(self.tr('Personalization'), self.scrollWidget)
-        self.themeCard = OptionsSettingCard(
+        self.themeCard = ComboBoxSettingCard(
             cfg.themeMode,
             FluentIcon.BRUSH,
             self.tr('黑白主题'),
@@ -53,7 +53,7 @@ class Setting(ScrollArea):
             None,
             self.personalGroup
         )
-        self.zoomCard = OptionsSettingCard(
+        self.zoomCard = ComboBoxSettingCard(
             cfg.dpiScale,
             FluentIcon.ZOOM,
             self.tr("应用缩放"),
@@ -125,22 +125,21 @@ class Setting(ScrollArea):
         self.scrollWidget.setObjectName('scrollWidget')
 
         theme = 'dark' if isDarkTheme() else 'light'
-        with open(f'resource/qss/{theme}/setting_interface.qss', encoding='utf-8') as f:
+        with open(f'./qss/{theme}/setting.qss', encoding='utf-8') as f:
             self.setStyleSheet(f.read())
 
     def __showRestartTooltip(self):
         """ show restart tooltip """
-        print('okokok')
         InfoBar.warning(
             '',
-            self.tr('Configuration takes effect after restart'),
+            self.tr('该配置在重启之后生效喵'),
             parent=self.window()
         )
 
     def __onDownloadFolderCardClicked(self):
         """ download folder card clicked slot """
         folder = QFileDialog.getExistingDirectory(
-            self, self.tr("Choose folder"), "./")
+            self, self.tr("选择文件夹"), "../")
         if not folder or cfg.get(cfg.downloadFolder) == folder:
             return
 

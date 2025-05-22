@@ -3,7 +3,7 @@
         "Startup": false,
         "Update": false,
         "Folders": "D:/Work Files/PyQt-Fluent-Widgets-exploit/DeskpetETO/output",
-        "DpiScale": 1.5,
+        "DpiScale": "Auto",
         "Minimize": true
     },
     "QFluentWidgets": {

@@ -36,7 +36,7 @@ class Window(FramelessWindow):
 
     def setQss(self):
         theme = 'dark' if isDarkTheme() else 'light'
-        with open(f'resource/qss/{theme}/demo.qss', encoding='utf-8') as f:
+        with open(f'./qss/{theme}/demo.qss', encoding='utf-8') as f:
             self.setStyleSheet(f.read())
 
 
