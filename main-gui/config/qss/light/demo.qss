@@ -21,3 +21,13 @@ CloseButton {
     qproperty-normalColor: black;
     qproperty-normalBackgroundColor: transparent;
 }
+
+ComboBox {
+    min-width: 40px;
+    max-width: 40px;
+}
+
+ColorPickerButton {
+    min-height: 32px;  /* 最小高度 */
+    max-height: 32px;
+}

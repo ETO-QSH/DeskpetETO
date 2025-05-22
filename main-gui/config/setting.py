@@ -3,9 +3,11 @@ from PyQt5.QtWidgets import QWidget, QFileDialog
 
 from qfluentwidgets import (
     SettingCardGroup, SwitchSettingCard, PushSettingCard, FluentIcon, ConfigItem, ComboBoxSettingCard,
-    ColorSettingCard, ScrollArea, ExpandLayout, Theme, InfoBar, setTheme, setThemeColor, isDarkTheme,
-    FolderValidator, BoolValidator, OptionsValidator, OptionsConfigItem, qconfig, QConfig
+    ScrollArea, ExpandLayout, Theme, InfoBar, setTheme, setThemeColor, isDarkTheme, QConfig,
+    FolderValidator, BoolValidator, OptionsValidator, OptionsConfigItem, qconfig
 )
+
+from DeskpetETO.ColorPicker import ColorSettingCard
 
 
 class Config(QConfig):
@@ -39,6 +41,7 @@ class Setting(ScrollArea):
 
         # personalization
         self.personalGroup = SettingCardGroup(self.tr('Personalization'), self.scrollWidget)
+
         self.themeCard = ComboBoxSettingCard(
             cfg.themeMode,
             FluentIcon.BRUSH,
@@ -46,13 +49,19 @@ class Setting(ScrollArea):
             texts=[self.tr('Light'), self.tr('Dark'), self.tr('Auto')],
             parent=self.personalGroup
         )
+
         self.themeColorCard = ColorSettingCard(
             cfg.themeColor,
             FluentIcon.PALETTE,
             self.tr('主题颜色'),
             None,
-            self.personalGroup
+            self.personalGroup,
+            False,
+            False
         )
+        self.themeColorCard.colorPicker.setMaximumWidth(84)
+        self.themeColorCard.colorPicker.setMinimumWidth(84)
+
         self.zoomCard = ComboBoxSettingCard(
             cfg.dpiScale,
             FluentIcon.ZOOM,
@@ -63,30 +72,55 @@ class Setting(ScrollArea):
 
         # configuration
         self.otherGroup = SettingCardGroup(self.tr('Configuration'), self.scrollWidget)
+
         self.downloadFolderCard = PushSettingCard(
             self.tr('打开'),
             FluentIcon.DOWNLOAD,
             self.tr("输出文件夹"),
             parent=self.otherGroup
         )
+        self.downloadFolderCard.button.setMaximumWidth(84)
+        self.downloadFolderCard.button.setMinimumWidth(84)
+        self.downloadFolderCard.button.setStyleSheet("padding: 5px 0px;")
+
         self.minimizeToTrayCard = SwitchSettingCard(
             FluentIcon.MINIMIZE,
             self.tr('最小化托盘'),
             configItem=cfg.minimizeToTray,
             parent=self.otherGroup
         )
+        switch_1 = self.minimizeToTrayCard.switchButton
+        # 设置文本
+        switch_1.setOnText("开启")
+        switch_1.setOffText("关闭")
+        # 通过信号强制刷新
+        switch_1.checkedChanged.connect(lambda: switch_1.setText(switch_1.onText if switch_1.isChecked() else switch_1.offText))
+
         self.automateStartUpCard = SwitchSettingCard(
             FluentIcon.POWER_BUTTON,
             self.tr('开机自启动'),
             configItem=cfg.automateStartUp,
             parent=self.otherGroup
         )
+        switch_2 = self.automateStartUpCard.switchButton
+        # 设置文本
+        switch_2.setOnText("开启")
+        switch_2.setOffText("关闭")
+        # 通过信号强制刷新
+        switch_2.checkedChanged.connect(lambda: switch_2.setText(switch_2.onText if switch_2.isChecked() else switch_2.offText))
+
         self.updateOnStartUpCard = SwitchSettingCard(
             FluentIcon.UPDATE,
             self.tr('自检查更新'),
             configItem=cfg.checkUpdateAtStartUp,
             parent=self.otherGroup
         )
+        switch_3 = self.updateOnStartUpCard.switchButton
+        # 设置文本
+        switch_3.setOnText("开启")
+        switch_3.setOffText("关闭")
+        # 通过信号强制刷新
+        switch_3.checkedChanged.connect(lambda: switch_3.setText(switch_3.onText if switch_3.isChecked() else switch_3.offText))
 
         self.__initWidget()
 
@@ -115,8 +149,8 @@ class Setting(ScrollArea):
         self.otherGroup.addSettingCard(self.automateStartUpCard)
 
         # add setting card group to layout
-        self.expandLayout.setSpacing(25)
-        self.expandLayout.setContentsMargins(20, 15, 20, 15)
+        self.expandLayout.setSpacing(20)
+        self.expandLayout.setContentsMargins(10, 15, 10, 15)
         self.expandLayout.addWidget(self.personalGroup)
         self.expandLayout.addWidget(self.otherGroup)
 
@@ -125,7 +159,7 @@ class Setting(ScrollArea):
         self.scrollWidget.setObjectName('scrollWidget')
 
         theme = 'dark' if isDarkTheme() else 'light'
-        with open(f'./qss/{theme}/setting.qss', encoding='utf-8') as f:
+        with open(f'./QSS/{theme}/setting.qss', encoding='utf-8') as f:
             self.setStyleSheet(f.read())
 
     def __showRestartTooltip(self):

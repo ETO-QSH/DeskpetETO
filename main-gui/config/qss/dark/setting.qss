@@ -3,8 +3,8 @@ SettingInterface, #scrollWidget {
 }
 
 QScrollArea {
-    border: none;
     background-color: rgb(39, 39, 39);
+    border: none;
 }
 
 
@@ -14,4 +14,3 @@ QLabel#settingLabel {
     background-color: transparent;
     color: white;
 }
-

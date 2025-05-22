@@ -24,7 +24,7 @@ class Window(FramelessWindow):
         self.setWindowIcon(QIcon(":/qfluentwidgets/images/logo.png"))
         self.setWindowTitle("PyQt-Fluent-Widgets")
 
-        self.resize(360, 600)
+        self.resize(360, 540)
         desktop = QApplication.desktop().availableGeometry()
         w, h = desktop.width(), desktop.height()
         self.move(w//2 - self.width()//2, h//2 - self.height()//2)
@@ -36,7 +36,7 @@ class Window(FramelessWindow):
 
     def setQss(self):
         theme = 'dark' if isDarkTheme() else 'light'
-        with open(f'./qss/{theme}/demo.qss', encoding='utf-8') as f:
+        with open(f'./QSS/{theme}/demo.qss', encoding='utf-8') as f:
             self.setStyleSheet(f.read())
 
 

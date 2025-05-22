@@ -22,6 +22,12 @@ CloseButton {
     qproperty-normalBackgroundColor: transparent;
 }
 
-StandardTitleBar > QLabel {
-    color: white;
+ComboBox {
+    min-width: 40px;
+    max-width: 40px;
+}
+
+ColorPickerButton {
+    min-height: 32px;  /* 最小高度 */
+    max-height: 32px;
 }
