@@ -1,0 +1,13 @@
+{
+    "MainWindow": {
+        "Startup": false,
+        "Update": false,
+        "Folders": "D:/Work Files/PyQt-Fluent-Widgets-exploit/DeskpetETO/output",
+        "DpiScale": 1.5,
+        "Minimize": true
+    },
+    "QFluentWidgets": {
+        "ThemeColor": "#ff009faa",
+        "ThemeMode": "Dark"
+    }
+}
