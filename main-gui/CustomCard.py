@@ -2,12 +2,12 @@ import os
 import json
 
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtGui import QPixmap, QFont, QFontDatabase
+from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QFrame, QVBoxLayout
 
 from qfluentwidgets import (
-    ElevatedCardWidget, BodyLabel, ToolButton, FluentIcon, Theme, isDarkTheme, ImageLabel,
+    ElevatedCardWidget, BodyLabel, ToolButton, FluentIcon, Theme, isDarkTheme, ImageLabel, qconfig,
     EditableComboBox, TransparentToolButton, PrimaryPushButton, Flyout, InfoBarIcon, FlyoutAnimationType
 )
 
@@ -35,6 +35,8 @@ class CustomCard(ElevatedCardWidget):
         # 为移动按钮添加拖拽支持
         self.buttons[1].installEventFilter(self)  # 索引1是移动按钮
         self._current_mode = "ADD"  # 默认模式
+
+        qconfig.themeChanged.connect(self._update_button_icons)
 
     def _init_ui(self):
         self.setFixedSize(520, 120)
@@ -101,7 +103,7 @@ class CustomCard(ElevatedCardWidget):
 
     def _init_style(self):
         # 根据主题设置图标颜色
-        self.iconBadge.setProperty('isDark', isDarkTheme())# 加载自定义字体
+        self.iconBadge.setProperty('isDark', isDarkTheme())
 
         # font_id = QFontDatabase.addApplicationFont(r".\resource\font\Lolita.ttf")
         # if font_id != -1:
@@ -114,7 +116,6 @@ class CustomCard(ElevatedCardWidget):
         # font_11.setPointSize(11)
         # self.bodyLabel.setFont(font_11)
 
-        # 设置字体
         font = self.bodyLabel.font()
         font.setPointSize(11)
         self.bodyLabel.setFont(font)
@@ -146,11 +147,23 @@ class CustomCard(ElevatedCardWidget):
         ]
         self.set_button_icons(new_icons)
 
+    def _update_button_icons(self):
+        """ 主题变化时更新按钮图标 """
+        theme = Theme.DARK if isDarkTheme() else Theme.LIGHT
+        current_icons = [
+            FluentIcon.COPY,
+            FluentIcon.MOVE if self._current_mode == "ADD" else FluentIcon.REMOVE_FROM,
+            FluentIcon.RINGER,
+            FluentIcon.DELETE
+        ]
+        for btn, icon in zip(self.buttons, current_icons):
+            btn.setIcon(icon.icon(theme))
+
     def set_text(self, agent, skin, model):
         """设置文本内容"""
         text = f"<b>• {agent}</b>"
-        text += f"<br><span style='color:#000;'>• {skin}</span>"
-        text += f"<br><span style='color:#666;'>• {model}</span>"
+        text += f"<br>• {skin}</span>"
+        text += f"<br>• {model}</span>"
         self.bodyLabel.setText(text)
 
     def eventFilter(self, obj, event):
@@ -216,7 +229,7 @@ class AddCard(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.resize(520, 120)
+        self.resize(520, 135)
         self.data = {}  # 存储加载的JSON数据
         self.init_ui()
         self.load_combo_data()
@@ -224,12 +237,12 @@ class AddCard(QWidget):
     def init_ui(self):
         # 主卡片容器
         self.card = QWidget(self)
-        self.card.setGeometry(0, 0, 520, 120)
+        self.card.setGeometry(0, 0, 520, 135)
 
         # 垂直布局（主布局）
         self.verticalLayout = QVBoxLayout(self.card)
         self.verticalLayout.addStretch()
-        self.verticalLayout.setContentsMargins(28, 8, 16, 16)
+        self.verticalLayout.setContentsMargins(28, 0, 16, 16)
 
         # 水平布局（核心调整部分）
         self.horizontalLayout = QHBoxLayout()
@@ -241,6 +254,10 @@ class AddCard(QWidget):
 
         font_10 = QFont(parent_font)
         font_10.setPointSize(10)
+
+        font_12b = QFont(parent_font)
+        font_12b.setPointSize(12)
+        font_12b.setWeight(QFont.Bold)
 
         # ================== 第一组（干员选择） ==================
 
@@ -291,9 +308,10 @@ class AddCard(QWidget):
         self.horizontalLayout.addWidget(self.combo_model)
 
         # ================== 添加按钮 ==================
+        self.verticalLayout.addStretch()
         btn_container = QWidget()
         btn_layout = QHBoxLayout(btn_container)
-        btn_layout.setContentsMargins(0, 0, 0, 0)
+        btn_layout.setContentsMargins(0, 0, 0, 8)
         btn_layout.setSpacing(8)
 
         # 重载按钮
@@ -306,7 +324,7 @@ class AddCard(QWidget):
         self.btn_add = PrimaryPushButton(" 添加卡片")
         self.btn_add.setIcon(FluentIcon.ADD_TO)
         self.btn_add.setFixedSize(240, 45)
-        self.btn_add.setFont(font_10)
+        self.btn_add.setFont(font_12b)
         self.btn_add.setIconSize(QSize(20, 20))
         self.btn_add.clicked.connect(self.on_add_clicked)
 
@@ -432,7 +450,7 @@ class AddCard(QWidget):
         Flyout.create(
             icon=InfoBarIcon.WARNING,
             title='Warning!',
-            content="完整填写所有选项喵 ~",
+            content="请完整填写所有选项喵 ~",
             target=self.btn_add,
             parent=self,
             aniType=FlyoutAnimationType.PULL_UP,
@@ -456,7 +474,7 @@ class FilterCard(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.resize(520, 120)
+        self.resize(520, 135)
         self.data = {}  # 存储加载的JSON数据
         self.init_ui()
         self.load_combo_data()
@@ -468,12 +486,12 @@ class FilterCard(QWidget):
     def init_ui(self):
         # 主卡片容器
         self.card = QWidget(self)
-        self.card.setGeometry(0, 0, 520, 120)
+        self.card.setGeometry(0, 0, 520, 135)
 
         # 垂直布局（主布局）
         self.verticalLayout = QVBoxLayout(self.card)
         self.verticalLayout.addStretch()
-        self.verticalLayout.setContentsMargins(28, 8, 16, 16)
+        self.verticalLayout.setContentsMargins(28, 0, 16, 16)
 
         # 水平布局（核心调整部分）
         self.horizontalLayout = QHBoxLayout()
@@ -485,6 +503,10 @@ class FilterCard(QWidget):
 
         font_10 = QFont(parent_font)
         font_10.setPointSize(10)
+
+        font_12b = QFont(parent_font)
+        font_12b.setPointSize(12)
+        font_12b.setWeight(QFont.Bold)
 
         # ================== 第一组（干员选择） ==================
 
@@ -531,9 +553,10 @@ class FilterCard(QWidget):
         self.horizontalLayout.addWidget(self.combo_model)
 
         # ================== 添加按钮 ==================
+        self.verticalLayout.addStretch()
         btn_container = QWidget()
         btn_layout = QHBoxLayout(btn_container)
-        btn_layout.setContentsMargins(0, 0, 0, 0)
+        btn_layout.setContentsMargins(0, 0, 0, 8)
         btn_layout.setSpacing(8)
 
         # 清空按钮
@@ -545,7 +568,7 @@ class FilterCard(QWidget):
         self.btn_filter = PrimaryPushButton(" 卡片筛选")
         self.btn_filter.setIcon(FluentIcon.FILTER)
         self.btn_filter.setFixedSize(240, 45)
-        self.btn_filter.setFont(font_10)
+        self.btn_filter.setFont(font_12b)
         self.btn_filter.setIconSize(QSize(20, 20))
 
         # 添加按钮

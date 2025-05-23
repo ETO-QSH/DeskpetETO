@@ -12,7 +12,7 @@ from DeskpetETO.ColorPicker import ColorSettingCard
 
 class Config(QConfig):
     """ Config of application """
-    downloadFolder = ConfigItem("MainWindow", "Folders", "../output", FolderValidator())
+    downloadFolder = ConfigItem("MainWindow", "Folders", "./output", FolderValidator())
     minimizeToTray = ConfigItem("MainWindow", "Minimize", True, BoolValidator())
     automateStartUp = ConfigItem("MainWindow", "Startup", False, BoolValidator())
     checkUpdateAtStartUp = ConfigItem("MainWindow", "Update", False, BoolValidator())
@@ -23,7 +23,7 @@ class Config(QConfig):
 
 
 cfg = Config()
-qconfig.load('config.json', cfg)
+qconfig.load('./config/config.json', cfg)
 
 
 class Setting(ScrollArea):
@@ -46,6 +46,7 @@ class Setting(ScrollArea):
             cfg.themeMode,
             FluentIcon.BRUSH,
             self.tr('黑白主题'),
+            self.tr('切换日间或夜间主题，自动为跟随系统设置'),
             texts=[self.tr('Light'), self.tr('Dark'), self.tr('Auto')],
             parent=self.personalGroup
         )
@@ -54,11 +55,12 @@ class Setting(ScrollArea):
             cfg.themeColor,
             FluentIcon.PALETTE,
             self.tr('主题颜色'),
-            None,
+            self.tr('设置控件的主题颜色'),
             self.personalGroup,
             False,
             False
         )
+        self.__updateThemeColorDescription()  # 初始化时更新描述
         self.themeColorCard.colorPicker.setMaximumWidth(84)
         self.themeColorCard.colorPicker.setMinimumWidth(84)
 
@@ -66,6 +68,7 @@ class Setting(ScrollArea):
             cfg.dpiScale,
             FluentIcon.ZOOM,
             self.tr("应用缩放"),
+            self.tr('设置软件缩放DPI，自动为跟随系统设置'),
             texts=["100%", "125%", "150%", "175%", "200%", self.tr("Auto")],
             parent=self.personalGroup
         )
@@ -77,8 +80,10 @@ class Setting(ScrollArea):
             self.tr('打开'),
             FluentIcon.DOWNLOAD,
             self.tr("输出文件夹"),
+            self.tr("资源下载的临时目录，目前目录"),
             parent=self.otherGroup
         )
+        self.__updateDownloadFolderDescription()  # 初始化时更新描述
         self.downloadFolderCard.button.setMaximumWidth(84)
         self.downloadFolderCard.button.setMinimumWidth(84)
         self.downloadFolderCard.button.setStyleSheet("padding: 5px 0px;")
@@ -86,6 +91,7 @@ class Setting(ScrollArea):
         self.minimizeToTrayCard = SwitchSettingCard(
             FluentIcon.MINIMIZE,
             self.tr('最小化托盘'),
+            self.tr('关闭时最小化至托盘后台监控'),
             configItem=cfg.minimizeToTray,
             parent=self.otherGroup
         )
@@ -99,6 +105,7 @@ class Setting(ScrollArea):
         self.automateStartUpCard = SwitchSettingCard(
             FluentIcon.POWER_BUTTON,
             self.tr('开机自启动'),
+            self.tr('将软件快捷方式加入开机自启目录'),
             configItem=cfg.automateStartUp,
             parent=self.otherGroup
         )
@@ -112,6 +119,7 @@ class Setting(ScrollArea):
         self.updateOnStartUpCard = SwitchSettingCard(
             FluentIcon.UPDATE,
             self.tr('自检查更新'),
+            self.tr('使软件在启动时自检最新仓库获取资源和版本信息'),
             configItem=cfg.checkUpdateAtStartUp,
             parent=self.otherGroup
         )
@@ -123,6 +131,7 @@ class Setting(ScrollArea):
         switch_3.checkedChanged.connect(lambda: switch_3.setText(switch_3.onText if switch_3.isChecked() else switch_3.offText))
 
         self.__initWidget()
+        self.setObjectName('SettingInterface')  # 添加对象标识
 
     def __initWidget(self):
         self.resize(540, 810)
@@ -159,7 +168,7 @@ class Setting(ScrollArea):
         self.scrollWidget.setObjectName('scrollWidget')
 
         theme = 'dark' if isDarkTheme() else 'light'
-        with open(f'./QSS/{theme}/setting.qss', encoding='utf-8') as f:
+        with open(f'./config/QSS/{theme}/setting.qss', encoding='utf-8') as f:
             self.setStyleSheet(f.read())
 
     def __showRestartTooltip(self):
@@ -173,7 +182,7 @@ class Setting(ScrollArea):
     def __onDownloadFolderCardClicked(self):
         """ download folder card clicked slot """
         folder = QFileDialog.getExistingDirectory(
-            self, self.tr("选择文件夹"), "../")
+            self, self.tr("选择文件夹"), "./")
         if not folder or cfg.get(cfg.downloadFolder) == folder:
             return
 
@@ -193,7 +202,19 @@ class Setting(ScrollArea):
         cfg.appRestartSig.connect(self.__showRestartTooltip)
         cfg.themeChanged.connect(self.__onThemeChanged)
 
-        self.downloadFolderCard.clicked.connect(self.__onDownloadFolderCardClicked)
         self.themeColorCard.colorChanged.connect(setThemeColor)
+        self.downloadFolderCard.clicked.connect(self.__onDownloadFolderCardClicked)
         self.minimizeToTrayCard.checkedChanged.connect(self.minimizeToTrayChanged)
         self.minimizeToTrayCard.checkedChanged.connect(self.automateStartUpChanged)
+
+        cfg.themeColor.valueChanged.connect(self.__updateThemeColorDescription)
+        cfg.downloadFolder.valueChanged.connect(self.__updateDownloadFolderDescription)
+
+    def __updateThemeColorDescription(self):
+        """ 更新主题颜色描述 """
+        text = self.tr(f'设置控件的主题颜色，当前颜色：{cfg.themeColor.value.name().upper()}')
+        self.themeColorCard.contentLabel.setText(text)
+
+    def __updateDownloadFolderDescription(self):
+        text = self.tr(f'资源下载的临时目录，目前目录：\n{cfg.downloadFolder.value}')
+        self.downloadFolderCard.contentLabel.setText(text)

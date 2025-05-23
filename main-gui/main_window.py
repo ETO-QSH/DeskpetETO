@@ -1,13 +1,19 @@
 # coding:utf-8
+import os
 import sys
 
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtCore
 from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtGui import QIcon, QDesktopServices, QFont
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout
-from qfluentwidgets import (NavigationItemPosition, MessageBox, setTheme, Theme, MSFluentWindow,
-                            NavigationAvatarWidget, qrouter, SubtitleLabel, setFont)
-from qfluentwidgets import FluentIcon as FIF
+
+from DeskpetETO.CardFrame import CardWindow
+from DeskpetETO.Setting import Setting, cfg
+
+from qfluentwidgets import (
+    NavigationItemPosition, setTheme, Theme, MSFluentWindow, SubtitleLabel,
+    setFont, qconfig, setThemeColor, isDarkTheme, FluentIcon
+)
 
 
 class Widget(QFrame):
@@ -23,48 +29,75 @@ class Widget(QFrame):
         self.setObjectName(text.replace(' ', '-'))
 
 
-
 class Window(MSFluentWindow):
-
     def __init__(self):
         super().__init__()
 
         self.homeInterface = Widget('Home Interface', self)
-        self.cardInterface = Widget('Card Interface', self)
+        self.cardInterface = CardWindow()
         self.downloadInterface = Widget('Download Interface', self)
         self.moreInterface = Widget('More Interface', self)
 
-        self.settingButton = Widget('Setting Interface', self)
+        self.settingInterface = Setting(self)
         self.documentInterface = Widget('Document Interface', self)
         self.certificateButton = Widget('Certificate Interface', self)
 
         self.initNavigation()
         self.initWindow()
 
+        qconfig.load('./config/config.json', cfg)
+
+        # 应用初始主题
+        self.setQss()
+        setTheme(cfg.get(cfg.themeMode))
+        setThemeColor(cfg.get(cfg.themeColor))
+
+        # 添加主题变化监听
+        cfg.themeChanged.connect(self._onThemeChanged)
+        cfg.themeColorChanged.connect(self._onThemeColorChanged)
+
+    def closeEvent(self, event):
+        # 关闭时保存配置
+        qconfig.save()
+        super().closeEvent(event)
+
+    def _onThemeChanged(self, theme: Theme):
+        setTheme(theme)
+        self.setQss()
+
+    def _onThemeColorChanged(self, color):
+        setThemeColor(color)
+        self.setQss()
+
+    def setQss(self):
+        theme = 'dark' if isDarkTheme() else 'light'
+        with open(f'./config/QSS/{theme}/demo.qss', encoding='utf-8') as f:
+            self.setStyleSheet(f.read())
+
     def initNavigation(self):
-        self.addSubInterface(self.homeInterface, FIF.HOME, '主页', FIF.HOME)
-        self.addSubInterface(self.cardInterface, FIF.LABEL, '管理', FIF.LABEL)
-        self.addSubInterface(self.downloadInterface, FIF.DOWNLOAD, '下载', FIF.DOWNLOAD)
-        self.addSubInterface(self.moreInterface, FIF.APPLICATION, '更多', FIF.APPLICATION)
+        self.addSubInterface(self.homeInterface, FluentIcon.HOME, '主页', FluentIcon.HOME)
+        self.addSubInterface(self.cardInterface, FluentIcon.LABEL, '管理', FluentIcon.LABEL)
+        self.addSubInterface(self.downloadInterface, FluentIcon.DOWNLOAD, '下载', FluentIcon.DOWNLOAD)
+        self.addSubInterface(self.moreInterface, FluentIcon.APPLICATION, '更多', FluentIcon.APPLICATION)
 
         self.addSubInterface(
-            self.settingButton, FIF.SETTING, '设置',
-            FIF.SETTING, NavigationItemPosition.BOTTOM
+            self.settingInterface, FluentIcon.SETTING, '设置',
+            FluentIcon.SETTING, NavigationItemPosition.BOTTOM
         )
         self.addSubInterface(
-            self.documentInterface, FIF.HELP, '文档',
-            FIF.HELP, NavigationItemPosition.BOTTOM
+            self.documentInterface, FluentIcon.HELP, '文档',
+            FluentIcon.HELP, NavigationItemPosition.BOTTOM
         )
         self.addSubInterface(
-            self.certificateButton, FIF.CERTIFICATE, '许可',
-            FIF.CERTIFICATE, NavigationItemPosition.BOTTOM
+            self.certificateButton, FluentIcon.CERTIFICATE, '许可',
+            FluentIcon.CERTIFICATE, NavigationItemPosition.BOTTOM
         )
 
         self.navigationInterface.addItem(
             routeKey='Github',
-            icon=FIF.GITHUB,
+            icon=FluentIcon.GITHUB,
             text='源码',
-            onClick=self.showMessageBox,
+            onClick=self.toGithub,
             selectable=False,
             position=NavigationItemPosition.BOTTOM,
         )
@@ -72,7 +105,7 @@ class Window(MSFluentWindow):
         self.navigationInterface.setCurrentItem(self.homeInterface.objectName())
 
     def initWindow(self):
-        self.resize(480, 640)
+        self.setGeometry(QtCore.QRect(0, 0, 610, 840))
 
         self.titleBar.maxBtn.hide()
         self.titleBar.setDoubleClickEnabled(False)
@@ -97,58 +130,29 @@ class Window(MSFluentWindow):
         w, h = desktop.width(), desktop.height()
         self.move(w//2 - self.width()//2, h//2 - self.height()//2)
 
-    def showMessageBox(self):
-        w = MessageBox(
-            'byETO',
-            '跳转至项目GitHub首页，可以为本项目提交Issue哦~',
-            self
-        )
-        w.yesButton.setText('这就去')
-        w.cancelButton.setText('懒得看')
-
-        self.set_font("萝莉体", 10, w.yesButton)
-
-        titleLabelStyle = """
-          QLabel {
-              font-family: '萝莉体';
-              font-size: 20px;
-          }
-        """
-        w.titleLabel.setStyleSheet(titleLabelStyle)
-
-        contentLabelStyle = """
-          QLabel {
-              font-family: '萝莉体';
-              font-size: 16px;
-          }
-        """
-        w.contentLabel.setStyleSheet(contentLabelStyle)
-
-        cancelButtonStyle = """
-          QPushButton {
-              font-family: '萝莉体';
-              font-size: 13px;
-          }
-        """
-        w.cancelButton.setStyleSheet(cancelButtonStyle)
-
-        if w.exec():
-            QDesktopServices.openUrl(QUrl("https://github.com/ETO-QSH/DeskpetETO"))
-
-    def set_font(self, font_name, font_size, label):
-        """ 设置指定标签的字体和大小 """
-        font = QFont(font_name, font_size)
-        label.setFont(font)
+    def toGithub(self):
+        QDesktopServices.openUrl(QUrl("https://github.com/ETO-QSH/DeskpetETO"))
 
 
 if __name__ == '__main__':
-    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+    # QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    # QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+    # QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+
+    # enable dpi scale
+    if cfg.get(cfg.dpiScale) == "Auto":
+        QApplication.setHighDpiScaleFactorRoundingPolicy(
+            Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+    else:
+        os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
+        os.environ["QT_SCALE_FACTOR"] = str(cfg.get(cfg.dpiScale))
+
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
-    # setTheme(Theme.DARK)
-
     app = QApplication(sys.argv)
+    app.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
+
     w = Window()
     w.show()
     app.exec_()

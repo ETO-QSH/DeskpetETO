@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFontDatabase, QFont
 
 from DeskpetETO.CustomCard import CustomCard, AddCard, FilterCard
-from qfluentwidgets import SmoothScrollArea
+from qfluentwidgets import SmoothScrollArea, isDarkTheme
 from uuid import uuid4
 import json
 import copy
@@ -34,10 +33,10 @@ class Ui_CardFrame(object):
         CardFrame.setMaximumSize(QtCore.QSize(540, 810))
 
         # 加载自定义字体
-        font_id = QFontDatabase.addApplicationFont(r".\resource\font\Lolita.ttf")
-        if font_id != -1:
-            font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
-            font = QFont(font_family)
+        self.font_id = QFontDatabase.addApplicationFont(r".\resource\font\Lolita.ttf")
+        if self.font_id != -1:
+            self.font_family = QFontDatabase.applicationFontFamilies(self.font_id)[0]
+            font = QFont(self.font_family)
             CardFrame.setFont(font)
         else:
             print("Failed to load font")
@@ -56,11 +55,13 @@ class Ui_CardFrame(object):
         self.SmoothScrollArea.setMaximumSize(QtCore.QSize(540, 4500))
         self.SmoothScrollArea.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.SmoothScrollArea.setWidgetResizable(False)
+        self.SmoothScrollArea.setStyleSheet("background: transparent;")
+        self.SmoothScrollArea.setFrameShape(QtWidgets.QFrame.NoFrame)
 
         self.scrollContent = QtWidgets.QWidget()
-        self.scrollContent.setMinimumSize(QtCore.QSize(538, 0))
+        self.scrollContent.setMinimumSize(QtCore.QSize(540, 0))
         self.mainLayout = QtWidgets.QVBoxLayout(self.scrollContent)
-        self.mainLayout.setContentsMargins(10, 10, 10, 10)
+        self.mainLayout.setContentsMargins(6, 10, 15, 9)
         self.mainLayout.setSpacing(10)
 
         self.SmoothScrollArea.setWidget(self.scrollContent)
@@ -75,7 +76,6 @@ class Ui_CardFrame(object):
         self.dragging_card = None
         self.drop_line = QtWidgets.QFrame()
         self.drop_line.setFrameShape(QtWidgets.QFrame.HLine)
-        self.drop_line.setLineWidth(2)
         self.drop_line.hide()
 
         # 加载一些乱七八糟的数据
@@ -90,6 +90,12 @@ class Ui_CardFrame(object):
         self.AddCardWidget.setObjectName("AddCardWidget")
         self.AddCardWidget.setMinimumSize(QtCore.QSize(540, 120))
         self.AddCardWidget.setMaximumSize(QtCore.QSize(540, 120))
+        self.AddCardWidget.setFont(QFont(self.font_family))
+        self.AddCardWidget.setStyleSheet(f"""
+            * {{
+                font-family: '{self.font_family}';
+            }}
+        """)
 
         # 重置筛选显示所有卡片
         for card_id in self.card_manager.card_order:
@@ -113,6 +119,12 @@ class Ui_CardFrame(object):
         self.FilterCardWidget.setObjectName("FilterCardWidget")
         self.FilterCardWidget.setMinimumSize(QtCore.QSize(540, 120))
         self.FilterCardWidget.setMaximumSize(QtCore.QSize(540, 120))
+        self.FilterCardWidget.setFont(QFont(self.font_family))
+        self.FilterCardWidget.setStyleSheet(f"""
+            * {{
+                font-family: '{self.font_family}';
+            }}
+        """)
 
         # 连接信号
         self.FilterCardWidget.btn_filter.clicked.connect(self._handle_filter_clicked)
@@ -384,8 +396,7 @@ class Ui_CardFrame(object):
         # 更新指示线位置
         if target_index >= 0:
             y_pos = self._get_drop_position(target_index)
-            self.drop_line.setGeometry(
-                QtCore.QRect(0, y_pos, self.scrollContent.width(), 3))
+            self.drop_line.setGeometry(QtCore.QRect(0, y_pos - 2, self.scrollContent.width(), 3))
             self.drop_line.show()
 
             # 自动滚动
@@ -522,17 +533,14 @@ class Ui_CardFrame(object):
         self.SmoothScrollArea.verticalScrollBar().setValue(0)  # 触发滚动到顶部
 
 
-class TestWindow(QtWidgets.QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("卡片管理测试")
-        self.resize(540, 810)
+class CardWindow(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        self.setObjectName("CardInterface")
 
         # 初始化卡片框架
-        self.card_frame = QtWidgets.QWidget(self)
         self.ui = Ui_CardFrame()
-        self.ui.setupUi(self.card_frame)
-        self.card_frame.setGeometry(0, 0, 540, 810)
+        self.ui.setupUi(self)
 
         # 添加测试数据
         self._add_sample_cards()
@@ -600,10 +608,15 @@ class TestWindow(QtWidgets.QWidget):
             'image': r".\resource\img\远行前的野餐.png"
         })
 
+    def setQss(self):
+        theme = 'dark' if isDarkTheme() else 'light'
+        with open(f'./resource/{theme}/demo.qss', encoding='utf-8') as f:
+            self.setStyleSheet(f.read())
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
 
-    window = TestWindow()
+    window = CardWindow()
     window.show()
     sys.exit(app.exec_())
