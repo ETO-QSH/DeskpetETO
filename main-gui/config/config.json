@@ -3,11 +3,12 @@
         "Startup": false,
         "Update": false,
         "Folders": "D:/Work Files/PyQt-Fluent-Widgets-exploit/DeskpetETO/output",
-        "DpiScale": 1.5,
+        "DpiScale": "Auto",
+        "Page": "DownloadInterface",
         "Minimize": true
     },
     "QFluentWidgets": {
-        "ThemeColor": "#ffe3cfff",
+        "ThemeColor": "#ffc7d6ff",
         "ThemeMode": "Dark"
     }
 }

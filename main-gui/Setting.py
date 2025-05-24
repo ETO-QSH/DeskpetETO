@@ -20,6 +20,11 @@ class Config(QConfig):
         "MainWindow", "DpiScale", "Auto",
         OptionsValidator([1, 1.25, 1.5, 1.75, 2, "Auto"]), restart=True
     )
+    firstPage = OptionsConfigItem(
+        "MainWindow", "Page", "HomeInterface", OptionsValidator([
+            "HomeInterface", "CardInterface", "DownloadInterface", "MoreInterface", "SettingInterface", "DocumentInterface"
+        ])
+    )
 
 
 cfg = Config()
@@ -37,6 +42,7 @@ class Setting(ScrollArea):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.scrollWidget = QWidget()
+        self.setObjectName("SettingInterface")
         self.expandLayout = ExpandLayout(self.scrollWidget)
 
         # personalization
@@ -70,6 +76,15 @@ class Setting(ScrollArea):
             self.tr("应用缩放"),
             self.tr('设置软件缩放DPI，自动为跟随系统设置'),
             texts=["100%", "125%", "150%", "175%", "200%", self.tr("Auto")],
+            parent=self.personalGroup
+        )
+
+        self.pageCard = ComboBoxSettingCard(
+            cfg.firstPage,
+            FluentIcon.PIN,
+            self.tr("启动首页"),
+            self.tr('设置软件启动时，显现的初始页面'),
+            texts=["主页", "管理", "下载", "更多", "设置", "文档"],
             parent=self.personalGroup
         )
 
@@ -151,6 +166,7 @@ class Setting(ScrollArea):
         self.personalGroup.addSettingCard(self.themeCard)
         self.personalGroup.addSettingCard(self.themeColorCard)
         self.personalGroup.addSettingCard(self.zoomCard)
+        self.personalGroup.addSettingCard(self.pageCard)
 
         self.otherGroup.addSettingCard(self.downloadFolderCard)
         self.otherGroup.addSettingCard(self.updateOnStartUpCard)

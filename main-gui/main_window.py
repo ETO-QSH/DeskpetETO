@@ -1,4 +1,3 @@
-# coding:utf-8
 import os
 import sys
 
@@ -8,6 +7,8 @@ from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout
 
 from DeskpetETO.CardFrame import CardWindow
+from DeskpetETO.Document import Document
+from DeskpetETO.MessageBox import CustomMessageBox
 from DeskpetETO.Setting import Setting, cfg
 
 from qfluentwidgets import (
@@ -33,14 +34,13 @@ class Window(MSFluentWindow):
     def __init__(self):
         super().__init__()
 
-        self.homeInterface = Widget('Home Interface', self)
+        self.homeInterface = Widget('HomeInterface', self)
         self.cardInterface = CardWindow()
-        self.downloadInterface = Widget('Download Interface', self)
-        self.moreInterface = Widget('More Interface', self)
+        self.downloadInterface = Widget('DownloadInterface', self)
+        self.moreInterface = Widget('MoreInterface', self)
 
         self.settingInterface = Setting(self)
-        self.documentInterface = Widget('Document Interface', self)
-        self.certificateButton = Widget('Certificate Interface', self)
+        self.documentInterface = Document(self)
 
         self.initNavigation()
         self.initWindow()
@@ -88,11 +88,14 @@ class Window(MSFluentWindow):
             self.documentInterface, FluentIcon.HELP, '文档',
             FluentIcon.HELP, NavigationItemPosition.BOTTOM
         )
-        self.addSubInterface(
-            self.certificateButton, FluentIcon.CERTIFICATE, '许可',
-            FluentIcon.CERTIFICATE, NavigationItemPosition.BOTTOM
+        self.navigationInterface.addItem(
+            routeKey='Certifi',
+            icon=FluentIcon.CERTIFICATE,
+            text='许可',
+            onClick=self.showMessage,
+            selectable=False,
+            position=NavigationItemPosition.BOTTOM,
         )
-
         self.navigationInterface.addItem(
             routeKey='Github',
             icon=FluentIcon.GITHUB,
@@ -102,7 +105,19 @@ class Window(MSFluentWindow):
             position=NavigationItemPosition.BOTTOM,
         )
 
-        self.navigationInterface.setCurrentItem(self.homeInterface.objectName())
+        match cfg.get(cfg.firstPage):
+            case 'HomeInterface':
+                self.switchTo(self.homeInterface)
+            case 'CardInterface':
+                self.switchTo(self.cardInterface)
+            case 'DownloadInterface':
+                self.switchTo(self.downloadInterface)
+            case 'MoreInterface':
+                self.switchTo(self.moreInterface)
+            case 'SettingInterface':
+                self.switchTo(self.settingInterface)
+            case 'DocumentInterface':
+                self.switchTo(self.documentInterface)
 
     def initWindow(self):
         self.setGeometry(QtCore.QRect(0, 0, 610, 840))
@@ -121,7 +136,7 @@ class Window(MSFluentWindow):
         titleLabelStyle = """
         QLabel {
             font-family: '萝莉体';
-            font-size: 15px;
+            font-size: 18px;
         }
         """
         self.titleBar.titleLabel.setStyleSheet(titleLabelStyle)
@@ -129,6 +144,11 @@ class Window(MSFluentWindow):
         desktop = QApplication.desktop().availableGeometry()
         w, h = desktop.width(), desktop.height()
         self.move(w//2 - self.width()//2, h//2 - self.height()//2)
+
+    def showMessage(self):
+        w = CustomMessageBox(self.stackedWidget)
+        if w.exec():
+            pass
 
     def toGithub(self):
         QDesktopServices.openUrl(QUrl("https://github.com/ETO-QSH/DeskpetETO"))

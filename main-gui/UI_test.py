@@ -1,38 +1,59 @@
-# test_color_dialog.py
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow
-from PyQt5.QtGui import QColor
 
-from qfluentwidgets import ColorDialog
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QWidget, QStackedWidget, QVBoxLayout, QLabel
+
+from qfluentwidgets import SegmentedWidget
 
 
-def handle_color_change(color):
-    print("Selected color:", color.name())
+class Demo(QWidget):
+
+    def __init__(self):
+        super().__init__()
+        self.resize(400, 400)
+
+        self.pivot = SegmentedWidget(self)
+        self.stackedWidget = QStackedWidget(self)
+        self.vBoxLayout = QVBoxLayout(self)
+
+        self.songInterface = QLabel('Song Interface', self)
+        self.albumInterface = QLabel('Album Interface', self)
+        self.artistInterface = QLabel('Artist Interface', self)
+
+        # add items to pivot
+        self.addSubInterface(self.songInterface, 'songInterface', 'Song')
+        self.addSubInterface(self.albumInterface, 'albumInterface', 'Album')
+        self.addSubInterface(self.artistInterface, 'artistInterface', 'Artist')
+
+        self.vBoxLayout.addWidget(self.pivot)
+        self.vBoxLayout.addWidget(self.stackedWidget)
+        self.vBoxLayout.setContentsMargins(30, 10, 30, 30)
+
+        self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
+        self.stackedWidget.setCurrentWidget(self.songInterface)
+        self.pivot.setCurrentItem(self.songInterface.objectName())
+
+    def addSubInterface(self, widget: QLabel, objectName, text):
+        widget.setObjectName(objectName)
+        widget.setAlignment(Qt.AlignCenter)
+        self.stackedWidget.addWidget(widget)
+        self.pivot.addItem(
+            routeKey=objectName,
+            text=text,
+            onClick=lambda: self.stackedWidget.setCurrentWidget(widget),
+        )
+
+    def onCurrentIndexChanged(self, index):
+        widget = self.stackedWidget.widget(index)
+        self.pivot.setCurrentItem(widget.objectName())
 
 
 if __name__ == '__main__':
+    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+
     app = QApplication(sys.argv)
-
-    # 创建一个主窗口作为父组件
-    main_window = QMainWindow()
-    main_window.setFixedSize(800, 1200)
-    main_window.show()
-
-    # 初始颜色设为红色
-    initial_color = QColor(255, 0, 0)
-
-    # 创建颜色对话框，传入有效的父窗口
-    dialog = ColorDialog(
-        color=initial_color,
-        title="选择颜色",
-        parent=main_window,  # 这里改为有效的父窗口
-        enableAlpha=True
-    )
-
-    # 连接颜色变化信号
-    dialog.colorChanged.connect(handle_color_change)
-
-    # 显示对话框
-    dialog.show()
-
-    sys.exit(app.exec_())
+    w = Demo()
+    w.show()
+    app.exec_()

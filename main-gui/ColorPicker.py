@@ -4,12 +4,11 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor, QIcon, QPainter
 from PyQt5.QtWidgets import QToolButton, QColorDialog
 
-from qfluentwidgets import qconfig, FluentIconBase, SettingCard, isDarkTheme, ColorDialog
+from qfluentwidgets import qconfig, FluentIconBase, SettingCard, isDarkTheme
 
 
 class ColorPickerButton(QToolButton):
     """ Color picker button """
-
     colorChanged = pyqtSignal(QColor)
 
     def __init__(self, color: QColor, title: str, parent=None, enableAlpha=False, enable_realtime=False):
@@ -72,7 +71,6 @@ class ColorPickerButton(QToolButton):
 
 class ColorSettingCard(SettingCard):
     """ Setting card with color picker """
-
     colorChanged = pyqtSignal(QColor)
 
     def __init__(self, configItem, icon: Union[str, QIcon, FluentIconBase], title: str,

@@ -1,12 +1,13 @@
+import sys
+import copy
+import json
+from uuid import uuid4
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFontDatabase, QFont
 
-from DeskpetETO.CustomCard import CustomCard, AddCard, FilterCard
 from qfluentwidgets import SmoothScrollArea, isDarkTheme
-from uuid import uuid4
-import json
-import copy
-import sys
+from DeskpetETO.CustomCard import CustomCard, AddCard, FilterCard
 
 
 class CardManager(QtCore.QObject):
@@ -27,8 +28,8 @@ class CardManager(QtCore.QObject):
 
 class Ui_CardFrame(object):
     def setupUi(self, CardFrame):
-        CardFrame.setObjectName("CardFrame")
         CardFrame.resize(540, 810)
+        CardFrame.setObjectName("CardInterface")
         CardFrame.setMinimumSize(QtCore.QSize(540, 810))
         CardFrame.setMaximumSize(QtCore.QSize(540, 810))
 
@@ -411,7 +412,7 @@ class Ui_CardFrame(object):
             # 计算当前视口在内容中的中间位置
             viewport_top = current_scroll
             viewport_bottom = current_scroll + viewport_height
-            viewport_center = viewport_top + viewport_bottom / 2
+            viewport_center = (viewport_top + viewport_bottom) / 2
 
             # 计算鼠标位置相对于视口的比例
             relative_y = (y_pos * (total_height / (total_height - 80)) - viewport_center) / viewport_height
@@ -536,8 +537,6 @@ class Ui_CardFrame(object):
 class CardWindow(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.setObjectName("CardInterface")
-
         # 初始化卡片框架
         self.ui = Ui_CardFrame()
         self.ui.setupUi(self)
