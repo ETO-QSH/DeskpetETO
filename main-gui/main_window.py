@@ -18,7 +18,6 @@ from qfluentwidgets import (
 
 
 class Widget(QFrame):
-
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)
         self.label = SubtitleLabel(text, self)
@@ -37,7 +36,6 @@ class Window(MSFluentWindow):
         self.homeInterface = Widget('HomeInterface', self)
         self.cardInterface = CardWindow()
         self.downloadInterface = Widget('DownloadInterface', self)
-        self.moreInterface = Widget('MoreInterface', self)
 
         self.settingInterface = Setting(self)
         self.documentInterface = Document(self)
@@ -78,7 +76,6 @@ class Window(MSFluentWindow):
         self.addSubInterface(self.homeInterface, FluentIcon.HOME, '主页', FluentIcon.HOME)
         self.addSubInterface(self.cardInterface, FluentIcon.LABEL, '管理', FluentIcon.LABEL)
         self.addSubInterface(self.downloadInterface, FluentIcon.DOWNLOAD, '下载', FluentIcon.DOWNLOAD)
-        self.addSubInterface(self.moreInterface, FluentIcon.APPLICATION, '更多', FluentIcon.APPLICATION)
 
         self.addSubInterface(
             self.settingInterface, FluentIcon.SETTING, '设置',
@@ -87,14 +84,6 @@ class Window(MSFluentWindow):
         self.addSubInterface(
             self.documentInterface, FluentIcon.HELP, '文档',
             FluentIcon.HELP, NavigationItemPosition.BOTTOM
-        )
-        self.navigationInterface.addItem(
-            routeKey='Certifi',
-            icon=FluentIcon.CERTIFICATE,
-            text='许可',
-            onClick=self.showMessage,
-            selectable=False,
-            position=NavigationItemPosition.BOTTOM,
         )
         self.navigationInterface.addItem(
             routeKey='Github',
@@ -112,8 +101,6 @@ class Window(MSFluentWindow):
                 self.switchTo(self.cardInterface)
             case 'DownloadInterface':
                 self.switchTo(self.downloadInterface)
-            case 'MoreInterface':
-                self.switchTo(self.moreInterface)
             case 'SettingInterface':
                 self.switchTo(self.settingInterface)
             case 'DocumentInterface':

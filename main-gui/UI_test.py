@@ -21,9 +21,9 @@ class Demo(QWidget):
         self.artistInterface = QLabel('Artist Interface', self)
 
         # add items to pivot
-        self.addSubInterface(self.songInterface, 'songInterface', 'Song')
-        self.addSubInterface(self.albumInterface, 'albumInterface', 'Album')
-        self.addSubInterface(self.artistInterface, 'artistInterface', 'Artist')
+        self.addSubInterface(self.songInterface, 'songInterface', '资源仓库更新')
+        self.addSubInterface(self.albumInterface, 'albumInterface', 'PRTS爬虫更新')
+        self.addSubInterface(self.artistInterface, 'artistInterface', '用户自主提交')
 
         self.vBoxLayout.addWidget(self.pivot)
         self.vBoxLayout.addWidget(self.stackedWidget)

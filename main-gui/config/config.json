@@ -1,11 +1,22 @@
 {
-    "MainWindow": {
+    "Configuration": {
         "Startup": false,
         "Update": false,
+        "Keeper": true,
+        "Minimize": true,
+        "Unclick": false
+    },
+    "Personalization": {
         "Folders": "D:/Work Files/PyQt-Fluent-Widgets-exploit/DeskpetETO/output",
         "DpiScale": "Auto",
-        "Page": "DownloadInterface",
-        "Minimize": true
+        "Page": "SettingInterface"
+    },
+    "Animation": {
+        "Dynamic": 2,
+        "Gravity": 2.5,
+        "ModelSize": 0.0,
+        "Smooth": 0.35,
+        "Velocity": 5
     },
     "QFluentWidgets": {
         "ThemeColor": "#ffc7d6ff",

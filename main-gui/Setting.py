@@ -4,27 +4,37 @@ from PyQt5.QtWidgets import QWidget, QFileDialog
 from qfluentwidgets import (
     SettingCardGroup, SwitchSettingCard, PushSettingCard, FluentIcon, ConfigItem, ComboBoxSettingCard,
     ScrollArea, ExpandLayout, Theme, InfoBar, setTheme, setThemeColor, isDarkTheme, QConfig,
-    FolderValidator, BoolValidator, OptionsValidator, OptionsConfigItem, qconfig
+    FolderValidator, BoolValidator, OptionsValidator, OptionsConfigItem, qconfig, RangeConfigItem, RangeValidator
 )
 
 from DeskpetETO.ColorPicker import ColorSettingCard
+from DeskpetETO.FloatSettingCard import RangeSettingCard2F, RangeValidator2F, RangeSettingCardInt
 
 
 class Config(QConfig):
     """ Config of application """
-    downloadFolder = ConfigItem("MainWindow", "Folders", "./output", FolderValidator())
-    minimizeToTray = ConfigItem("MainWindow", "Minimize", True, BoolValidator())
-    automateStartUp = ConfigItem("MainWindow", "Startup", False, BoolValidator())
-    checkUpdateAtStartUp = ConfigItem("MainWindow", "Update", False, BoolValidator())
+    downloadFolder = ConfigItem("Personalization", "Folders", "./output", FolderValidator())
     dpiScale = OptionsConfigItem(
-        "MainWindow", "DpiScale", "Auto",
+        "Personalization", "DpiScale", "Auto",
         OptionsValidator([1, 1.25, 1.5, 1.75, 2, "Auto"]), restart=True
     )
     firstPage = OptionsConfigItem(
-        "MainWindow", "Page", "HomeInterface", OptionsValidator([
-            "HomeInterface", "CardInterface", "DownloadInterface", "MoreInterface", "SettingInterface", "DocumentInterface"
+        "Personalization", "Page", "HomeInterface", OptionsValidator([
+            "HomeInterface", "CardInterface", "DownloadInterface", "SettingInterface", "DocumentInterface"
         ])
     )
+
+    minimizeToTray = ConfigItem("Configuration", "Minimize", True, BoolValidator())
+    automateStartUp = ConfigItem("Configuration", "Startup", False, BoolValidator())
+    checkUpdateAtStartUp = ConfigItem("Configuration", "Update", False, BoolValidator())
+    penetrateClickAll = ConfigItem("Configuration", "Unclick", False, BoolValidator())
+    keepWindowTop = ConfigItem("Configuration", "Keeper", True, BoolValidator())
+
+    gravity = RangeConfigItem("Animation", "Gravity", 3.0, RangeValidator2F(0.0, 6.0))
+    smooth = RangeConfigItem("Animation", "Smooth", 0.25, RangeValidator2F(0.0, 0.5))
+    velocity = RangeConfigItem("Animation", "Velocity", 5, RangeValidator(0, 10))
+    dynamic = RangeConfigItem("Animation", "Dynamic", 2, RangeValidator(0, 6))
+    modelSize = RangeConfigItem("Animation", "ModelSize", 0.0, RangeValidator2F(-2.0, 2.0))
 
 
 cfg = Config()
@@ -34,8 +44,6 @@ qconfig.load('./config/config.json', cfg)
 class Setting(ScrollArea):
     """ Setting interface """
     checkUpdateSig = pyqtSignal()
-    musicFoldersChanged = pyqtSignal(list)
-    downloadFolderChanged = pyqtSignal(str)
     minimizeToTrayChanged = pyqtSignal(bool)
     automateStartUpChanged = pyqtSignal(bool)
 
@@ -50,7 +58,7 @@ class Setting(ScrollArea):
 
         self.themeCard = ComboBoxSettingCard(
             cfg.themeMode,
-            FluentIcon.BRUSH,
+            FluentIcon.CONSTRACT,
             self.tr('黑白主题'),
             self.tr('切换日间或夜间主题，自动为跟随系统设置'),
             texts=[self.tr('Light'), self.tr('Dark'), self.tr('Auto')],
@@ -79,29 +87,29 @@ class Setting(ScrollArea):
             parent=self.personalGroup
         )
 
-        self.pageCard = ComboBoxSettingCard(
-            cfg.firstPage,
-            FluentIcon.PIN,
-            self.tr("启动首页"),
-            self.tr('设置软件启动时，显现的初始页面'),
-            texts=["主页", "管理", "下载", "更多", "设置", "文档"],
-            parent=self.personalGroup
-        )
-
-        # configuration
-        self.otherGroup = SettingCardGroup(self.tr('Configuration'), self.scrollWidget)
-
         self.downloadFolderCard = PushSettingCard(
-            self.tr('打开'),
-            FluentIcon.DOWNLOAD,
-            self.tr("输出文件夹"),
+            self.tr('更改'),
+            FluentIcon.ZIP_FOLDER,
+            self.tr("输出目录"),
             self.tr("资源下载的临时目录，目前目录"),
-            parent=self.otherGroup
+            parent=self.personalGroup
         )
         self.__updateDownloadFolderDescription()  # 初始化时更新描述
         self.downloadFolderCard.button.setMaximumWidth(84)
         self.downloadFolderCard.button.setMinimumWidth(84)
         self.downloadFolderCard.button.setStyleSheet("padding: 5px 0px;")
+
+        self.pageCard = ComboBoxSettingCard(
+            cfg.firstPage,
+            FluentIcon.FLAG,
+            self.tr("启动首页"),
+            self.tr('设置软件启动时，显现的初始页面'),
+            texts=["主页", "管理", "下载", "设置", "文档"],
+            parent=self.personalGroup
+        )
+
+        # configuration
+        self.otherGroup = SettingCardGroup(self.tr('Configuration'), self.scrollWidget)
 
         self.minimizeToTrayCard = SwitchSettingCard(
             FluentIcon.MINIMIZE,
@@ -110,12 +118,7 @@ class Setting(ScrollArea):
             configItem=cfg.minimizeToTray,
             parent=self.otherGroup
         )
-        switch_1 = self.minimizeToTrayCard.switchButton
-        # 设置文本
-        switch_1.setOnText("开启")
-        switch_1.setOffText("关闭")
-        # 通过信号强制刷新
-        switch_1.checkedChanged.connect(lambda: switch_1.setText(switch_1.onText if switch_1.isChecked() else switch_1.offText))
+        self.cnSwitchButton(self.minimizeToTrayCard.switchButton)
 
         self.automateStartUpCard = SwitchSettingCard(
             FluentIcon.POWER_BUTTON,
@@ -124,12 +127,7 @@ class Setting(ScrollArea):
             configItem=cfg.automateStartUp,
             parent=self.otherGroup
         )
-        switch_2 = self.automateStartUpCard.switchButton
-        # 设置文本
-        switch_2.setOnText("开启")
-        switch_2.setOffText("关闭")
-        # 通过信号强制刷新
-        switch_2.checkedChanged.connect(lambda: switch_2.setText(switch_2.onText if switch_2.isChecked() else switch_2.offText))
+        self.cnSwitchButton(self.automateStartUpCard.switchButton)
 
         self.updateOnStartUpCard = SwitchSettingCard(
             FluentIcon.UPDATE,
@@ -138,15 +136,74 @@ class Setting(ScrollArea):
             configItem=cfg.checkUpdateAtStartUp,
             parent=self.otherGroup
         )
-        switch_3 = self.updateOnStartUpCard.switchButton
-        # 设置文本
-        switch_3.setOnText("开启")
-        switch_3.setOffText("关闭")
-        # 通过信号强制刷新
-        switch_3.checkedChanged.connect(lambda: switch_3.setText(switch_3.onText if switch_3.isChecked() else switch_3.offText))
+        self.cnSwitchButton(self.updateOnStartUpCard.switchButton)
+
+        self.penetrateClickCard = SwitchSettingCard(
+            FluentIcon.TAG,
+            self.tr('点击全穿透'),
+            self.tr('半透明桌宠并使所有鼠标操作透过'),
+            configItem=cfg.penetrateClickAll,
+            parent=self.otherGroup
+        )
+        self.cnSwitchButton(self.penetrateClickCard.switchButton)
+
+        self.keepWindowTopCard = SwitchSettingCard(
+            FluentIcon.PIN,
+            self.tr('窗口置顶化'),
+            self.tr('半透明桌宠并使所有鼠标操作透过'),
+            configItem=cfg.keepWindowTop,
+            parent=self.otherGroup
+        )
+        self.cnSwitchButton(self.keepWindowTopCard.switchButton)
+
+        # animation
+        self.animateGroup = SettingCardGroup(self.tr('Animation'), self.scrollWidget)
+
+        self.gravityCard = RangeSettingCard2F(
+            cfg.gravity,
+            FluentIcon.DOWN,
+            self.tr('重力加速度'),
+            self.tr('设置启用下落时的下落加速度折算时间（s）'),
+            2,
+            parent=self.animateGroup
+        )
+
+        self.smoothCard = RangeSettingCard2F(
+            cfg.smooth,
+            FluentIcon.STOP_WATCH,
+            self.tr('平滑混合时间'),
+            self.tr('设置两个不同动画切换时的混合时长（s）'),
+            20,
+            parent=self.animateGroup
+        )
+
+        self.velocityCard = RangeSettingCardInt(
+            cfg.velocity,
+            FluentIcon.SPEED_HIGH,
+            self.tr('移动速度'),
+            self.tr('设置模型在移动时的速度期望（20px/s）'),
+            parent=self.animateGroup
+        )
+
+        self.dynamicCard = RangeSettingCardInt(
+            cfg.dynamic,
+            FluentIcon.BASKETBALL,
+            self.tr('动作活跃度'),
+            self.tr('活跃度越高越容易触发行走以及特殊动画（int）'),
+            parent=self.animateGroup,
+        )
+
+        self.modelSizeCard = RangeSettingCard2F(
+            cfg.modelSize,
+            FluentIcon.FIT_PAGE,
+            self.tr('缩放比例'),
+            self.tr('设置模型相对于原尺寸的缩放比例（2^n）'),
+            5,
+            parent=self.animateGroup
+        )
 
         self.__initWidget()
-        self.setObjectName('SettingInterface')  # 添加对象标识
+        self.setObjectName('SettingInterface')
 
     def __initWidget(self):
         self.resize(540, 810)
@@ -165,19 +222,28 @@ class Setting(ScrollArea):
     def __initLayout(self):
         self.personalGroup.addSettingCard(self.themeCard)
         self.personalGroup.addSettingCard(self.themeColorCard)
-        self.personalGroup.addSettingCard(self.zoomCard)
         self.personalGroup.addSettingCard(self.pageCard)
+        self.personalGroup.addSettingCard(self.downloadFolderCard)
+        self.personalGroup.addSettingCard(self.zoomCard)
 
-        self.otherGroup.addSettingCard(self.downloadFolderCard)
+        self.otherGroup.addSettingCard(self.penetrateClickCard)
+        self.otherGroup.addSettingCard(self.keepWindowTopCard)
         self.otherGroup.addSettingCard(self.updateOnStartUpCard)
         self.otherGroup.addSettingCard(self.minimizeToTrayCard)
         self.otherGroup.addSettingCard(self.automateStartUpCard)
 
+        self.animateGroup.addSettingCard(self.gravityCard)
+        self.animateGroup.addSettingCard(self.smoothCard)
+        self.animateGroup.addSettingCard(self.velocityCard)
+        self.animateGroup.addSettingCard(self.dynamicCard)
+        self.animateGroup.addSettingCard(self.modelSizeCard)
+
         # add setting card group to layout
         self.expandLayout.setSpacing(20)
-        self.expandLayout.setContentsMargins(10, 15, 10, 15)
+        self.expandLayout.setContentsMargins(10, 0, 10, 15)
         self.expandLayout.addWidget(self.personalGroup)
         self.expandLayout.addWidget(self.otherGroup)
+        self.expandLayout.addWidget(self.animateGroup)
 
     def __setQss(self):
         """ set style sheet """
@@ -207,10 +273,7 @@ class Setting(ScrollArea):
 
     def __onThemeChanged(self, theme: Theme):
         """ theme changed slot """
-        # change the theme of qfluentwidgets
         setTheme(theme)
-
-        # chang the theme of setting interface
         self.__setQss()
 
     def __connectSignalToSlot(self):
@@ -221,7 +284,7 @@ class Setting(ScrollArea):
         self.themeColorCard.colorChanged.connect(setThemeColor)
         self.downloadFolderCard.clicked.connect(self.__onDownloadFolderCardClicked)
         self.minimizeToTrayCard.checkedChanged.connect(self.minimizeToTrayChanged)
-        self.minimizeToTrayCard.checkedChanged.connect(self.automateStartUpChanged)
+        self.automateStartUpCard.checkedChanged.connect(self.automateStartUpChanged)
 
         cfg.themeColor.valueChanged.connect(self.__updateThemeColorDescription)
         cfg.downloadFolder.valueChanged.connect(self.__updateDownloadFolderDescription)
@@ -234,3 +297,10 @@ class Setting(ScrollArea):
     def __updateDownloadFolderDescription(self):
         text = self.tr(f'资源下载的临时目录，目前目录：\n{cfg.downloadFolder.value}')
         self.downloadFolderCard.contentLabel.setText(text)
+
+    def cnSwitchButton(self, switch):
+        # 设置文本
+        switch.setOnText("开启")
+        switch.setOffText("关闭")
+        # 通过信号强制刷新
+        switch.checkedChanged.connect(lambda: switch.setText(switch.onText if switch.isChecked() else switch.offText))
