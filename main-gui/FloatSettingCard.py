@@ -1,13 +1,12 @@
 from typing import Union
-from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QLabel
+from PyQt5.QtCore import Qt, pyqtSignal
 from qfluentwidgets import ConfigValidator, qconfig, Slider, FluentIconBase, SettingCard
 
 
 class RangeValidator2F(ConfigValidator):
     """ 支持浮点数的范围验证器 """
-
     def __init__(self, min_val, max_val):
         self.min = float(min_val)
         self.max = float(max_val)
@@ -87,7 +86,6 @@ class RangeSettingCard2F(SettingCard):
 
 class RangeSettingCardInt(SettingCard):
     """ Setting card with a slider """
-
     valueChanged = pyqtSignal(int)
 
     def __init__(self, configItem, icon: Union[str, QIcon, FluentIconBase], title, content=None, parent=None):

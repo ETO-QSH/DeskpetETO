@@ -1,10 +1,11 @@
 import os
-import json
 
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QFrame, QVBoxLayout
+
+from DeskpetETO.JsonMerger import JsonMerger
 
 from qfluentwidgets import (
     ElevatedCardWidget, BodyLabel, ToolButton, FluentIcon, Theme, isDarkTheme, ImageLabel, qconfig,
@@ -82,15 +83,6 @@ class CustomCard(ElevatedCardWidget):
             btn = ToolButton()
             btn.setFixedSize(48, 48)
             btn.setIconSize(QSize(32, 32))
-            btn.setStyleSheet("""
-                ToolButton {
-                    border-radius: 16px;
-                    padding: 8px;
-                }
-                ToolButton:hover {
-                    background-color: rgba(0,0,0,0.05);
-                }
-            """)
             btn.clicked.connect(lambda _, idx=i: self.btnClicked.emit(idx))
             self.buttons.append(btn)
             self.btnLayout.addWidget(btn, i // 2, i % 2)
@@ -230,6 +222,7 @@ class AddCard(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.resize(520, 135)
+        self.json_merger = JsonMerger()
         self.data = {}  # 存储加载的JSON数据
         self.init_ui()
         self.load_combo_data()
@@ -362,14 +355,10 @@ class AddCard(QWidget):
     def load_combo_data(self):
         """加载JSON数据并初始化干员列表"""
         self.clear_selections()
-        try:
-            with open(r".\resource\saves.json", "r", encoding="utf-8") as f:
-                self.data = json.load(f)
-            agents = list(self.data.keys())
-            self.combo_agent.addItems(agents)
-            self.combo_agent.setCurrentIndex(-1)
-        except Exception as e:
-            print(f"加载JSON数据失败: {e}")
+        self.json_merger.load_all_data()
+        self.data = self.json_merger.data
+        self.combo_agent.addItems(list(self.data.keys()))
+        self.combo_agent.setCurrentIndex(-1)
 
     def on_agent_changed(self, agent):
         """干员选择变化事件"""
@@ -475,6 +464,7 @@ class FilterCard(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.resize(520, 135)
+        self.json_merger = JsonMerger()
         self.data = {}  # 存储加载的JSON数据
         self.init_ui()
         self.load_combo_data()
@@ -602,21 +592,11 @@ class FilterCard(QWidget):
 
     def load_combo_data(self):
         """加载JSON数据并初始化干员列表"""
-        try:
-            with open(r".\resource\saves.json", "r", encoding="utf-8") as f:
-                self.data = json.load(f)
-            agents = list(self.data.keys())
-            self.combo_agent.addItems(agents)
-            self.combo_agent.setCurrentIndex(-1)
-        except Exception as e:
-            print(f"加载JSON数据失败: {e}")
+        self.data = self.json_merger.data
+        self.combo_agent.addItems(list(self.data.keys()))
+        self.combo_agent.setCurrentIndex(-1)
 
     def load_brands(self):
-        """加载品牌数据"""
-        try:
-            with open(r".\resource\brands.json", "r", encoding="utf-8") as f:
-                self.brands = ["默认"] + list(json.load(f).keys())
-            self.combo_skin.addItems(self.brands)
-            self.combo_skin.setCurrentIndex(-1)
-        except Exception as e:
-            print(f"加载品牌数据失败: {e}")
+        self.brands = self.json_merger.brands
+        self.combo_skin.addItems(self.brands)
+        self.combo_skin.setCurrentIndex(-1)

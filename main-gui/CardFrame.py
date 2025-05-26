@@ -6,6 +6,7 @@ from uuid import uuid4
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFontDatabase, QFont
 
+from DeskpetETO.JsonMerger import JsonMerger
 from qfluentwidgets import SmoothScrollArea, isDarkTheme
 from DeskpetETO.CustomCard import CustomCard, AddCard, FilterCard
 
@@ -80,6 +81,7 @@ class Ui_CardFrame(object):
         self.drop_line.hide()
 
         # 加载一些乱七八糟的数据
+        self.json_merger = JsonMerger()
         self.load_brands_data()
 
     def show_add_card(self):
@@ -110,6 +112,7 @@ class Ui_CardFrame(object):
 
         self.SHOW_CARD = "ADD"
         self._update_all_card_icons()  # 新增状态更新
+        self._reorder_layout()
 
     def show_filter_card(self):
         """显示筛选卡片组件"""
@@ -136,6 +139,7 @@ class Ui_CardFrame(object):
 
         self.SHOW_CARD = "FILTER"
         self._update_all_card_icons()  # 新增状态更新
+        self._reorder_layout()
 
     def _remove_current_card(self):
         """移除当前卡片组件"""
@@ -172,7 +176,7 @@ class Ui_CardFrame(object):
         card_widget.btnClicked.connect(lambda idx, cid=card_id: self._handle_button(cid, idx))
 
         # 两面包夹芝士！
-        if hasattr(self, 'FilterCardWidget'):
+        if self.SHOW_CARD == "FILTER":
             self._handle_filter_clicked()
 
         # 确定插入位置
@@ -191,8 +195,9 @@ class Ui_CardFrame(object):
         self.card_manager.card_added.emit(card_id)
 
         # 两面包夹芝士！
-        if hasattr(self, 'FilterCardWidget'):
+        if self.SHOW_CARD == "FILTER":
             self._handle_filter_clicked()
+
         return card_id
 
     def _handle_button(self, card_id, btn_index):
@@ -213,7 +218,7 @@ class Ui_CardFrame(object):
             return False
 
         # 两面包夹芝士！
-        if hasattr(self, 'FilterCardWidget'):
+        if self.SHOW_CARD == "FILTER":
             self._handle_filter_clicked()
 
         # 获取位置
@@ -234,7 +239,7 @@ class Ui_CardFrame(object):
         self.card_manager.card_removed.emit(card_id)
 
         # 两面包夹芝士！
-        if hasattr(self, 'FilterCardWidget'):
+        if self.SHOW_CARD == "FILTER":
             self._handle_filter_clicked()
         return True
 
@@ -258,12 +263,7 @@ class Ui_CardFrame(object):
 
     def load_brands_data(self):
         """加载JSON数据并初始化干员列表"""
-        try:
-            with open(r".\resource\brands.json", "r", encoding="utf-8") as f:
-                self.brand_skin_dict = json.load(f)
-                self.brand_skin_dict["默认"] = ["默认"]
-        except Exception as e:
-            print(f"加载JSON数据失败: {e}")
+        self.brand_skin_dict = self.json_merger.brand_skin_dict
 
     def filter_cards(self, agent=None, brand=None, model=None):
         """筛选卡片，支持按品牌筛选"""
@@ -273,17 +273,17 @@ class Ui_CardFrame(object):
             match = True
 
             # 按品牌筛选
-            if brand is not None:
+            if brand:
                 # 检查当前卡片的皮肤是否属于指定品牌
                 if data['skin'] not in self.brand_skin_dict.get(brand, []):
                     match = False
 
             # 按干员筛选
-            if agent is not None and data['agent'] != agent:
+            if agent and data['agent'] != agent:
                 match = False
 
             # 按模型筛选
-            if model is not None and data['model'] != model:
+            if model and data['model'] != model:
                 match = False
 
             if match:
@@ -431,6 +431,13 @@ class Ui_CardFrame(object):
             self.drop_line.hide()
 
         if self.dragging_card is None:
+            # 手动触发鼠标释放事件（敲敲暴力版）
+            mouse_release_event = QtGui.QMouseEvent(
+                QtCore.QEvent.MouseButtonRelease, QtGui.QCursor.pos(),
+                QtCore.Qt.LeftButton, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier
+            )
+            for id, item in self.card_manager.cards.items():
+                QtCore.QCoreApplication.instance().sendEvent(item["widget"].buttons[1], mouse_release_event)
             return
 
         # 获取目标位置
@@ -555,6 +562,9 @@ class CardWindow(QtWidgets.QWidget):
             }
         """)
         self.ui.scrollContent.layout().addWidget(self.ui.drop_line)
+
+        # 连接卡片添加信号到样式更新
+        # self.ui.card_manager.card_added.connect(self.setQss)
 
     def _add_sample_cards(self):
         # 添加示例卡片（带图片路径）

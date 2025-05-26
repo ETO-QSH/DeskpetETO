@@ -7,31 +7,36 @@ from qfluentwidgets import SegmentedWidget
 
 
 class Demo(QWidget):
-
     def __init__(self):
         super().__init__()
+        self.setStyleSheet("""
+            Demo{background: white}
+            QLabel{
+                font: 20px 'Segoe UI';
+                background: rgb(242,242,242);
+                border-radius: 8px;
+            }
+        """)
         self.resize(400, 400)
 
         self.pivot = SegmentedWidget(self)
         self.stackedWidget = QStackedWidget(self)
         self.vBoxLayout = QVBoxLayout(self)
 
-        self.songInterface = QLabel('Song Interface', self)
-        self.albumInterface = QLabel('Album Interface', self)
-        self.artistInterface = QLabel('Artist Interface', self)
+        self.gitInterface = QLabel('git', self)
+        self.userInterface = QLabel('user', self)
 
         # add items to pivot
-        self.addSubInterface(self.songInterface, 'songInterface', '资源仓库更新')
-        self.addSubInterface(self.albumInterface, 'albumInterface', 'PRTS爬虫更新')
-        self.addSubInterface(self.artistInterface, 'artistInterface', '用户自主提交')
+        self.addSubInterface(self.gitInterface, 'gitDownload', '资源仓库更新')
+        self.addSubInterface(self.userInterface, 'userDownload', '用户自主提交')
 
         self.vBoxLayout.addWidget(self.pivot)
         self.vBoxLayout.addWidget(self.stackedWidget)
         self.vBoxLayout.setContentsMargins(30, 10, 30, 30)
 
         self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
-        self.stackedWidget.setCurrentWidget(self.songInterface)
-        self.pivot.setCurrentItem(self.songInterface.objectName())
+        self.stackedWidget.setCurrentWidget(self.gitInterface)
+        self.pivot.setCurrentItem(self.gitInterface.objectName())
 
     def addSubInterface(self, widget: QLabel, objectName, text):
         widget.setObjectName(objectName)

@@ -1,6 +1,7 @@
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QFileDialog
 
+from DeskpetETO.FileListSettingCard import FileListSettingCard
 from qfluentwidgets import (
     SettingCardGroup, SwitchSettingCard, PushSettingCard, FluentIcon, ConfigItem, ComboBoxSettingCard,
     ScrollArea, ExpandLayout, Theme, InfoBar, setTheme, setThemeColor, isDarkTheme, QConfig,
@@ -14,6 +15,10 @@ from DeskpetETO.FloatSettingCard import RangeSettingCard2F, RangeValidator2F, Ra
 class Config(QConfig):
     """ Config of application """
     downloadFolder = ConfigItem("Personalization", "Folders", "./output", FolderValidator())
+    wareHouse = OptionsConfigItem(
+        "Personalization", "WareHouse", "仓库",
+        OptionsValidator(["仓库", "用户"])
+    )
     dpiScale = OptionsConfigItem(
         "Personalization", "DpiScale", "Auto",
         OptionsValidator([1, 1.25, 1.5, 1.75, 2, "Auto"]), restart=True
@@ -87,11 +92,20 @@ class Setting(ScrollArea):
             parent=self.personalGroup
         )
 
+        self.warehouseCard = ComboBoxSettingCard(
+            cfg.wareHouse,
+            FluentIcon.DICTIONARY,
+            self.tr("主导数据"),
+            self.tr('设置键名重复时，优先选择的模型源'),
+            texts=["仓库", "用户"],
+            parent=self.personalGroup
+        )
+
         self.downloadFolderCard = PushSettingCard(
             self.tr('更改'),
-            FluentIcon.ZIP_FOLDER,
+            FluentIcon.FOLDER,
             self.tr("输出目录"),
-            self.tr("资源下载的临时目录，目前目录"),
+            self.tr("资源下载的临时目录"),
             parent=self.personalGroup
         )
         self.__updateDownloadFolderDescription()  # 初始化时更新描述
@@ -202,6 +216,15 @@ class Setting(ScrollArea):
             parent=self.animateGroup
         )
 
+        self.card = FileListSettingCard(
+            configItem=ConfigItem("", "", ''),
+            title="选择模型文件",
+            content="添加Spine动画所需的文件（*.skel *.atlas *.png）",
+            directory="./",
+            parent=self.personalGroup
+        )
+        self.card.stateFull.connect(lambda : print("Hello"))
+
         self.__initWidget()
         self.setObjectName('SettingInterface')
 
@@ -223,8 +246,9 @@ class Setting(ScrollArea):
         self.personalGroup.addSettingCard(self.themeCard)
         self.personalGroup.addSettingCard(self.themeColorCard)
         self.personalGroup.addSettingCard(self.pageCard)
-        self.personalGroup.addSettingCard(self.downloadFolderCard)
+        self.personalGroup.addSettingCard(self.warehouseCard)
         self.personalGroup.addSettingCard(self.zoomCard)
+        self.personalGroup.addSettingCard(self.downloadFolderCard)
 
         self.otherGroup.addSettingCard(self.penetrateClickCard)
         self.otherGroup.addSettingCard(self.keepWindowTopCard)
@@ -237,6 +261,8 @@ class Setting(ScrollArea):
         self.animateGroup.addSettingCard(self.velocityCard)
         self.animateGroup.addSettingCard(self.dynamicCard)
         self.animateGroup.addSettingCard(self.modelSizeCard)
+
+        self.personalGroup.addSettingCard(self.card)
 
         # add setting card group to layout
         self.expandLayout.setSpacing(20)

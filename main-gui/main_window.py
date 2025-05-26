@@ -89,7 +89,7 @@ class Window(MSFluentWindow):
             routeKey='Github',
             icon=FluentIcon.GITHUB,
             text='源码',
-            onClick=self.toGithub,
+            onClick=self.showMessage,
             selectable=False,
             position=NavigationItemPosition.BOTTOM,
         )
@@ -133,9 +133,18 @@ class Window(MSFluentWindow):
         self.move(w//2 - self.width()//2, h//2 - self.height()//2)
 
     def showMessage(self):
-        w = CustomMessageBox(self.stackedWidget)
+        agent_list = ["Ace", "SilverAsh", "Exusiai"]
+        skin_list = ["冬季制服", "战斗装备", "休闲装扮"]
+        brand_list = ["战术装备", "时尚品牌", "科幻系列"]
+        model_list = ["3D模型", "2D立绘", "Q版造型"]
+
+        w = CustomMessageBox(
+            self.stackedWidget, agent_list, skin_list, brand_list, model_list
+        )
+        w.yesButton.setText("确认")
+        w.cancelButton.setText("取消")
         if w.exec():
-            pass
+            print(w.getInputs())
 
     def toGithub(self):
         QDesktopServices.openUrl(QUrl("https://github.com/ETO-QSH/DeskpetETO"))
