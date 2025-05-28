@@ -53,7 +53,7 @@ def download_single_file(url, save_path, key_path, result_dict):
             current = result_dict
             for key in key_path[:-1]:
                 current = current.setdefault(key, {})
-            current[key_path[-1]] = save_path
+            current[key_path[-1]] = save_path.lower()
             break
         except Exception as e:
             print(f"下载失败正在重试: {url} ({type(e).__name__})")
@@ -81,4 +81,4 @@ with tqdm(total=len(agents), desc="正在处理喵") as pbar:
 
 with open("data.json", "w", encoding="utf-8") as file:
     json.dump(agents, file, indent=4, ensure_ascii=False)
-download_files(agents)
+download_files(agents, "基建")
