@@ -1,22 +1,26 @@
-import json
+import os.path
+import shutil
+import subprocess
 import sys
+import json
 from pathlib import Path
 
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QWidget, QApplication, QButtonGroup, QStackedWidget, QFileDialog
+from PyQt5.QtCore import Qt, pyqtSignal, QSize, QRect, QPoint, QThread, pyqtSlot
+from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtWidgets import QWidget, QApplication, QButtonGroup, QStackedWidget, QFileDialog, QLabel
 
+from DeskpetETO.ImageDropWidget import ImageDropWidget
 from DeskpetETO.FileListSettingCard import FileListSettingCard
 from DeskpetETO.FilesDropWidget import FilesDropWidget
 from DeskpetETO.JsonMerger import JsonMerger
 from DeskpetETO.MessageBox import CustomMessageBox
+from DeskpetETO.StateToolTip import StateToolTip
+
 from qfluentwidgets import (
     SimpleCardWidget, ToolButton, PrimaryPushButton, FluentIcon, ToolTipFilter, ToolTipPosition, TogglePushButton,
-    HorizontalPipsPager, ConfigItem, InfoBar, InfoBarPosition
+    HorizontalPipsPager, ConfigItem, InfoBar, InfoBarPosition, ElevatedCardWidget
 )
-
-from DeskpetETO.ImageDropWidget import ImageDropWidget
 
 
 class Ui_UserCard(object):
@@ -113,11 +117,16 @@ class Ui_UserCard(object):
 
         # 添加三个自定义控件
         self.widget1 = self.filesDropWidget
-        self.widget2 = ImageDropWidget("./resource/404.png")
+        self.widget2 = ClickableElevatedCardWidget()
         self.widget3 = ImageDropWidget("./resource/404.png")
         self.stack.addWidget(self.widget1)
         self.stack.addWidget(self.widget2)
         self.stack.addWidget(self.widget3)
+
+        # 绑定信号到打印函数
+        self.widget2.setup_workflow(self)  # 关联工作流
+        self.widget2.leftClicked.connect(self.elevatedCardLeft)
+        self.widget2.rightClicked.connect(self.elevatedCardRight)
 
         # 分页指示器
         self.pager = HorizontalPipsPager(self.pagerContainer)
@@ -210,7 +219,89 @@ class Ui_UserCard(object):
     def on_same_name(self, is_same):
         self.is_same = is_same
 
+    def elevatedCardLeft(self):
+        self.fileListCard._checkState()
+
+        if self.is_full and self.is_same:
+            files = self.fileListCard.files
+
+            for path in files.values():
+                if not Path(path).is_file():
+                    self.error_infor("文件不存在", path)
+                    return
+
+            # 显示状态提示
+            self.state_tooltip = StateToolTip('处理中，请稍后...', self.stack)
+            self.state_tooltip.setFixedWidth(180)
+            self.state_tooltip.setFixedHeight(36)
+            self.state_tooltip.setToolTipDuration(-1)
+
+            self.state_tooltip.titleLabel.setStyleSheet(
+                """
+                   QLabel {
+                       font-family: 萝莉体;
+                       font-size: 11pt;
+                   }
+                """
+            )
+
+            width, height = self.stack.width(), self.stack.height()
+            w, h = self.state_tooltip.width(), self.state_tooltip.height()
+
+            self.state_tooltip.move((width - w) // 2, (height - h) // 2)
+            self.state_tooltip.show()
+
+            # 禁用交互
+            self._set_widgets_enabled(False)
+
+            # 获取文件数据
+            files = self.fileListCard.files
+
+            # 启动工作线程
+            self.worker = SpinePreviewThread(files["skel"], files["atlas"], files["png"])
+            self.worker.finished.connect(
+                lambda code, result_path: self._handle_preview_result(code, result_path)
+            )
+            self.worker.start()
+
+        else:
+            InfoBar.warning(
+                title='Spine模型文件无效，请保证文件名一致',
+                content="",
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self.content_widget
+            )
+
+    def _set_widgets_enabled(self, enabled):
+        """ 设置控件启用状态 """
+        self.widget2.setEnabled(enabled)
+        self.fileListCard.setEnabled(enabled)
+
+    @pyqtSlot(int, str)
+    def _handle_preview_result(self, code, result_path):
+        """ 处理预览结果 """
+        # 关闭状态提示
+        self.state_tooltip.close()
+
+        # 恢复交互
+        self._set_widgets_enabled(True)
+
+        if code == 0 and os.path.exists(result_path):
+            self.widget2.show_image(result_path)
+        elif code == 1:
+            self.error_infor("模型解析失败")
+        elif code == -1:
+            self.error_infor("发生其他错误")
+
+    def elevatedCardRight(self):
+        print("elevatedCardRight")
+
     def gather_info(self):
+        self.fileListCard._checkState()
+
         if self.is_full and self.is_same:
             self.json_merger = JsonMerger()
             agent_list = self.json_merger.data.keys()
@@ -223,14 +314,13 @@ class Ui_UserCard(object):
             )
             w.yesButton.setText("确认")
             w.cancelButton.setText("取消")
+
             if w.exec():
                 print(w.getInputs())
-
-            paths = self.fileListCard.files
-            paths["head"] = self.widget3.image_path
-
-            self.clear_info()
-            print(paths)
+                paths = self.fileListCard.files
+                paths["head"] = self.widget3.image_path
+                self.clear_info()
+                print(paths)
 
         else:
             InfoBar.warning(
@@ -245,6 +335,7 @@ class Ui_UserCard(object):
 
     def clear_info(self):
         self.fileListCard.clear_files()
+        self.widget2.clear_content()
         self.widget3._load_default_image()
 
     def select_and_validate_json_file(self):
@@ -300,7 +391,12 @@ class Ui_UserCard(object):
                 self.error_infor("模型文件错误", "skel, atlas, png 文件名不一致")
                 return
 
-            # 这边调用C++验证
+            code, _ = spine_preview(item["skel"], item["atlas"], item["png"])
+
+            if code == 1:
+                self.error_infor("模型解析失败")
+            elif code == -1:
+                self.error_infor("发生其他错误")
 
         print(data)
 
@@ -314,6 +410,177 @@ class Ui_UserCard(object):
             duration=3000,
             parent=self.content_widget
         )
+
+
+class ClickableElevatedCardWidget(ElevatedCardWidget):
+    """ 支持双状态切换的可点击卡片控件 """
+    leftClicked = pyqtSignal()
+    rightClicked = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._current_mode = "text"  # text/image
+        self._last_image_path = ""
+        self._placeholder_text = "左 键  ->  简 单 渲 染 测 试\n右 键  ->  打 开 外 部 工 具"
+
+        # 初始化子控件
+        self._init_ui()
+
+        # 默认显示占位文字
+        self.show_text(self._placeholder_text)
+
+    def _init_ui(self):
+        """ 初始化界面组件 """
+        # 文字标签
+        self.text_label = QLabel(self)
+        self.text_label.setAlignment(Qt.AlignCenter)
+        self.text_label.setFont(QFont("萝莉体", 12))
+        self.text_label.setWordWrap(True)
+        self.text_label.setStyleSheet("""color: gray;""")
+
+        # 图片标签
+        self.image_label = QLabel(self)
+        self.image_label.setAlignment(Qt.AlignCenter)
+        self.image_label.setStyleSheet("background: transparent;")
+        self.image_label.hide()
+
+    def setup_workflow(self, main_window):
+        """ 关联主窗口功能 """
+        self.main_window = main_window
+
+    def show_text(self, content: str):
+        """ 显示文字内容 """
+        self._current_mode = "text"
+        self.text_label.setText(content)
+        self.text_label.show()
+        self.image_label.hide()
+        self.update()
+
+    def show_image(self, image_path: str):
+        """ 显示处理后的图片 """
+        if not image_path:
+            return
+
+        self._last_image_path = image_path
+        self._current_mode = "image"
+
+        # 加载并处理图片
+        pixmap = QPixmap(image_path)
+        if pixmap.isNull():
+            self.show_text("无效的图片文件")
+            return
+
+        # 分步处理图片
+        cropped = self._crop_center(pixmap, QSize(432, 432))
+        scaled = self._smart_scale(cropped, self.image_label.size())
+
+        self.image_label.setPixmap(scaled)
+        self.image_label.show()
+        self.text_label.hide()
+        self.update()
+
+    def _crop_center(self, pixmap: QPixmap, target: QSize) -> QPixmap:
+        """ 裁剪图片中心区域 """
+        source_size = pixmap.size()
+        crop_size = QSize(min(source_size.width(), target.width()), min(source_size.height(), target.height()))
+
+        width, height = (source_size.width() - crop_size.width()) // 2, (source_size.height() - crop_size.height()) // 2
+        return pixmap.copy(QRect(QPoint(width, height), crop_size))
+
+    def _smart_scale(self, pixmap: QPixmap, target: QSize) -> QPixmap:
+        """ 智能缩放策略 """
+        scaled = pixmap.scaled(
+            target * self.devicePixelRatioF(),
+            Qt.KeepAspectRatioByExpanding,
+            Qt.SmoothTransformation
+        )
+        scaled.setDevicePixelRatio(self.devicePixelRatioF())
+        return scaled
+
+    def resizeEvent(self, event):
+        """ 处理尺寸变化 """
+        super().resizeEvent(event)
+
+        # 更新子控件尺寸
+        padding = 15
+        content_rect = self.rect().adjusted(padding, padding, -padding, -padding)
+
+        self.text_label.setGeometry(content_rect)
+        self.image_label.setGeometry(self.rect())
+
+        # 如果当前是图片模式需要重新缩放
+        if self._current_mode == "image" and self._last_image_path:
+            self.show_image(self._last_image_path)
+
+    def mousePressEvent(self, event):
+        """ 处理鼠标点击事件 """
+        if self.isEnabled():  # 仅在启用状态下处理事件
+            super().mousePressEvent(event)
+
+            if event.button() == Qt.LeftButton:
+                self.leftClicked.emit()
+            elif event.button() == Qt.RightButton:
+                self.rightClicked.emit()
+
+    def clear_content(self):
+        """ 重置为初始状态 """
+        self.show_text(self._placeholder_text)
+        self._last_image_path = ""
+
+
+class SpinePreviewThread(QThread):
+    """ 骨骼预览生成线程 """
+    finished = pyqtSignal(int, str)  # (状态码, 结果路径)
+
+    def __init__(self, skel_path, atlas_path, png_path):
+        super().__init__()
+        self.skel_path = skel_path
+        self.atlas_path = atlas_path
+        self.png_path = png_path
+
+    def run(self):
+        try:
+            os.makedirs("./output/temp", exist_ok=True)
+            path = os.path.join("./output/temp", Path(self.skel_path).stem)
+
+            files = []
+            for file, suffix in [(self.skel_path, ".skel"), (self.atlas_path, ".atlas"), (self.png_path, ".png")]:
+                shutil.copyfile(file, path + suffix)
+                files.append(path + suffix)
+
+            result = subprocess.run(["./preview/preview.exe", *files[:2], path + "_output.png"])
+
+            for file in files:
+                os.remove(file)
+
+            if result.returncode == 0:
+                self.finished.emit(0, path + "_output.png")
+            else:
+                self.finished.emit(1, "模型解析失败")
+
+        except Exception as e:
+            self.finished.emit(-1, str(e))
+            print(e)
+
+
+def spine_preview(skel, atlas, png):
+    os.makedirs("./output/temp", exist_ok=True)
+    path = os.path.join("./output/temp", Path(skel).stem)
+
+    files = []
+    for file, suffix in [(skel, ".skel"), (atlas, ".atlas"), (png, ".png")]:
+        shutil.copyfile(file, path + suffix)
+        files.append(path + suffix)
+
+    result = subprocess.run(["./preview/preview.exe", *files[:2], path + "_output.png"])
+
+    for file in files:
+        os.remove(file)
+
+    if result.returncode == 0:
+        return 0, path + "_output.png"
+    else:
+        return 1, "模型解析失败"
 
 
 class PreviewWindow(QWidget):

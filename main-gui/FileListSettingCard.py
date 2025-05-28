@@ -94,7 +94,6 @@ class FileListSettingCard(ExpandSettingCard):
                 self.__updateFile(ext, path)
 
         self.filesChanged.emit(self.files)
-        self._checkState()
 
     def __updateFile(self, file_type: str, path: str):
         self.files[file_type] = path
@@ -122,7 +121,6 @@ class FileListSettingCard(ExpandSettingCard):
         item.deleteLater()
 
         self.filesChanged.emit(self.files)
-        self._checkState()
 
     def clear_files(self):
         self.__removeFile('skel')
@@ -136,7 +134,6 @@ class FileListSettingCard(ExpandSettingCard):
             self.file_items[file_type].pathLabel.setText(Path(path).name)
         else:
             self.__addFileItem(file_type, path)
-        self._checkState()
 
     def _checkState(self):
         is_full = all(self.files.values())
