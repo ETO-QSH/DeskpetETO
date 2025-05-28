@@ -8,8 +8,10 @@ from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout
 
 from DeskpetETO.CardFrame import CardWindow
 from DeskpetETO.Document import Document
+from DeskpetETO.JsonMerger import JsonMerger
 from DeskpetETO.MessageBox import CustomMessageBox
 from DeskpetETO.Setting import Setting, cfg
+from DeskpetETO.DownloadSegmented import DownloadSegmented
 
 from qfluentwidgets import (
     NavigationItemPosition, setTheme, Theme, MSFluentWindow, SubtitleLabel,
@@ -35,7 +37,7 @@ class Window(MSFluentWindow):
 
         self.homeInterface = Widget('HomeInterface', self)
         self.cardInterface = CardWindow()
-        self.downloadInterface = Widget('DownloadInterface', self)
+        self.downloadInterface = DownloadSegmented()
 
         self.settingInterface = Setting(self)
         self.documentInterface = Document(self)
@@ -89,7 +91,7 @@ class Window(MSFluentWindow):
             routeKey='Github',
             icon=FluentIcon.GITHUB,
             text='源码',
-            onClick=self.showMessage,
+            onClick=self.toGithub,
             selectable=False,
             position=NavigationItemPosition.BOTTOM,
         )
@@ -133,10 +135,11 @@ class Window(MSFluentWindow):
         self.move(w//2 - self.width()//2, h//2 - self.height()//2)
 
     def showMessage(self):
-        agent_list = ["Ace", "SilverAsh", "Exusiai"]
-        skin_list = ["冬季制服", "战斗装备", "休闲装扮"]
-        brand_list = ["战术装备", "时尚品牌", "科幻系列"]
-        model_list = ["3D模型", "2D立绘", "Q版造型"]
+        self.json_merger = JsonMerger()
+        agent_list = self.json_merger.data.keys()
+        skin_list = []
+        brand_list = self.json_merger.brands
+        model_list = ["基建", "正面", "背面"]
 
         w = CustomMessageBox(
             self.stackedWidget, agent_list, skin_list, brand_list, model_list

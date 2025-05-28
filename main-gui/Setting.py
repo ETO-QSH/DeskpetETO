@@ -36,7 +36,7 @@ class Config(QConfig):
     keepWindowTop = ConfigItem("Configuration", "Keeper", True, BoolValidator())
 
     gravity = RangeConfigItem("Animation", "Gravity", 3.0, RangeValidator2F(0.0, 6.0))
-    smooth = RangeConfigItem("Animation", "Smooth", 0.25, RangeValidator2F(0.0, 0.5))
+    smooth = RangeConfigItem("Animation", "Smooth", 0.35, RangeValidator2F(0.0, 0.5))
     velocity = RangeConfigItem("Animation", "Velocity", 5, RangeValidator(0, 10))
     dynamic = RangeConfigItem("Animation", "Dynamic", 2, RangeValidator(0, 6))
     modelSize = RangeConfigItem("Animation", "ModelSize", 0.0, RangeValidator2F(-2.0, 2.0))
@@ -216,15 +216,6 @@ class Setting(ScrollArea):
             parent=self.animateGroup
         )
 
-        self.card = FileListSettingCard(
-            configItem=ConfigItem("", "", ''),
-            title="选择模型文件",
-            content="添加Spine动画所需的文件（*.skel *.atlas *.png）",
-            directory="./",
-            parent=self.personalGroup
-        )
-        self.card.stateFull.connect(lambda : print("Hello"))
-
         self.__initWidget()
         self.setObjectName('SettingInterface')
 
@@ -261,8 +252,6 @@ class Setting(ScrollArea):
         self.animateGroup.addSettingCard(self.velocityCard)
         self.animateGroup.addSettingCard(self.dynamicCard)
         self.animateGroup.addSettingCard(self.modelSizeCard)
-
-        self.personalGroup.addSettingCard(self.card)
 
         # add setting card group to layout
         self.expandLayout.setSpacing(20)

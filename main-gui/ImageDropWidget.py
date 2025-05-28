@@ -1,10 +1,11 @@
+import os
 import sys
 from pathlib import Path
 
 from PyQt5.QtCore import Qt, QSize, pyqtSignal, QRectF
-from PyQt5.QtGui import QPixmap, QPainter, QPainterPath, QColor, QPen
+from PyQt5.QtGui import QPixmap, QPainter, QPainterPath, QColor, QPen, QFont
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QLabel, QPushButton, QFileDialog
-from qfluentwidgets import TeachingTip, TeachingTipTailPosition, InfoBarIcon, isDarkTheme
+from qfluentwidgets import TeachingTip, TeachingTipTailPosition, InfoBarIcon, isDarkTheme, ToolTipFilter, ToolTipPosition
 
 
 class ImageDropWidget(QWidget):
@@ -16,20 +17,26 @@ class ImageDropWidget(QWidget):
         self.default_image = default_image
         self.current_path = ""
         self.target_line_edit = None
-
         self._hover = False
-        self._border_color = QColor("#A0A0A0")
 
         # 初始化UI
-        self.setFixedSize(300, 300)
+        self.setFixedSize(280, 280)
         self.setObjectName("imageDropWidget")
 
         self.image_label = QLabel(self)
         self.image_label.setAlignment(Qt.AlignCenter)
-        self.image_label.setGeometry(10, 10, 280, 280)
+        self.image_label.setGeometry(15, 15, 250, 250)
 
         # 加载默认图片
         self._load_default_image()
+
+        # 设置浮出提示
+        self.image_label.setToolTip('拖入图片以进行替换喵')
+        self.image_label.setFont(QFont('萝莉体', 20))
+        self.image_label.setToolTipDuration(-1)
+        self.image_label.installEventFilter(
+            ToolTipFilter(self.image_label, showDelay=100, position=ToolTipPosition.TOP)
+        )
 
         # 启用悬停跟踪
         self.setAttribute(Qt.WA_Hover)
@@ -40,11 +47,9 @@ class ImageDropWidget(QWidget):
         painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
 
         # 绘制背景
-        bg_color = QColor(32, 32, 32) if isDarkTheme() else QColor(245, 245, 245)
         path = QPainterPath()
         rect = QRectF(self.rect()).adjusted(2, 2, -2, -2)  # 内边距
         path.addRoundedRect(rect, 15, 15)  # 圆角半径
-        # painter.fillPath(path, bg_color)
 
         # 绘制边框
         border_color = QColor("#3AA3FF" if self._hover else "#A0A0A0")
@@ -77,7 +82,8 @@ class ImageDropWidget(QWidget):
 
     def _load_default_image(self):
         if self.default_image:
-            self._set_pixmap(self.default_image)
+            self._set_pixmap(QPixmap(self.default_image))
+            self.image_path = os.path.abspath(self.default_image)
         else:
             self.image_label.setText("拖放图片到此区域")
 
@@ -105,14 +111,21 @@ class ImageDropWidget(QWidget):
 
     def dropEvent(self, event):
         if event.mimeData().hasUrls():
-            for url in event.mimeData().urls():
-                path = url.toLocalFile()
-                if self._is_valid_image(path):
-                    self.target_line_edit.setText(path)
-                    self.pathChanged.emit(path)
-                    event.accept()
-                    return
-            self._show_error_tip()
+            if len(event.mimeData().urls()) > 1:
+                self._show_warning_tip()
+            else:
+                for url in event.mimeData().urls():
+                    path = url.toLocalFile()
+                    if self._is_valid_image(path):
+                        if self.target_line_edit:
+                            self.target_line_edit.setText(path)
+                            self.pathChanged.emit(path)
+                        else:
+                            self._set_pixmap(QPixmap(path))
+                            self.image_path = os.path.abspath(path)
+                        event.accept()
+                        return
+                self._show_error_tip()
         super().dropEvent(event)
 
     def _is_valid_image(self, path: str):
@@ -124,6 +137,17 @@ class ImageDropWidget(QWidget):
             icon=InfoBarIcon.ERROR,
             title='无效文件',
             content='仅支持 PNG/JPG 格式的图片文件',
+            tailPosition=TeachingTipTailPosition.BOTTOM,
+            duration=3000,
+            parent=self.window()
+        )
+
+    def _show_warning_tip(self):
+        TeachingTip.create(
+            target=self,
+            icon=InfoBarIcon.WARNING,
+            title='多个文件',
+            content='一次性只能接受一个文件喵',
             tailPosition=TeachingTipTailPosition.BOTTOM,
             duration=3000,
             parent=self.window()

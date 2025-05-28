@@ -44,6 +44,9 @@ class CustomMessageBox(MessageBoxBase):
         self.mainLayout.addWidget(self.titleLabel, 0, Qt.AlignCenter)
         self.mainLayout.addSpacing(30)
 
+        # 初始化为空
+        self.agentCombo.setCurrentIndex(-1)
+
         # 输入字段布局
         self.mainLayout.addLayout(self.createInputRow(self.agentLabel, self.agentCombo))
         self.mainLayout.addSpacing(20)

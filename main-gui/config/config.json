@@ -9,7 +9,7 @@
     "Personalization": {
         "Folders": "D:/Work Files/PyQt-Fluent-Widgets-exploit/DeskpetETO/output",
         "DpiScale": "Auto",
-        "Page": "CardInterface",
+        "Page": "DownloadInterface",
         "WareHouse": "仓库"
     },
     "Animation": {
@@ -20,7 +20,7 @@
         "Velocity": 5
     },
     "QFluentWidgets": {
-        "ThemeColor": "#ff8193aa",
+        "ThemeColor": "#ff377caa",
         "ThemeMode": "Dark"
     }
 }
