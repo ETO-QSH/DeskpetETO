@@ -1,21 +1,23 @@
-# import requests
-#
-# # 设置请求头部，模拟浏览器访问
-# headers = {
-#     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-# }
-#
-# url = 'https://prts.wiki/w/%E5%85%8B%E6%B4%9B%E4%B8%9D'
-#
-# response = requests.get(url, headers=headers, verify=False)
-#
-# # 检查请求是否成功
-# if response.status_code == 200:
-#     # 获取网页内容
-#     html_content = response.text
-#     print(html_content)
-# else:
-#     print(f"请求失败，状态码：{response.status_code}")
+import json
+
+import requests
+
+# 设置请求头部，模拟浏览器访问
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+}
+
+url = 'https://prts.wiki/w/%E5%88%BB%E5%88%80/spine'
+
+response = requests.get(url, headers=headers, verify=False)
+
+# 检查请求是否成功
+if response.status_code == 200:
+    # 获取网页内容
+    html_content = response.text
+    print(html_content)
+else:
+    print(f"请求失败，状态码：{response.status_code}")
 
 
 """

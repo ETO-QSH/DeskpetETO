@@ -109,11 +109,15 @@ class WebScraper:
         URL = f"https://torappu.prts.wiki/assets/char_spine/{per_name}/meta.json"
         prefix = f"https://torappu.prts.wiki/assets/char_spine/{per_name}/"
         data = session.get(URL, headers=headers, verify=False).json()["skin"]
+        lite_prefix = "https://static.prts.wiki/spine/"
 
         for skin in data:
             if skin not in agent["spine"]:
                 agent["spine"][skin] = {}
+            filename = data[skin]["正面"]["file"].rsplit("/", 1)[1]
             for model, link in data[skin].items():
+                pf = ("back_" if model == "背面" else ("build_" if model == "基建" else ""))
+                lite_link = f"{lite_prefix}{"char" if skin == "默认" else "skin"}/{per_name}/{pf}{filename}/{filename}"
                 agent["spine"][skin][model] = prefix + link["file"]
 
         self.browser.quit()
@@ -298,7 +302,7 @@ class WebScraper:
         self.browser.get("https://prts.wiki/w/%E6%83%85%E6%8A%A5%E5%A4%84%E7%90%86%E5%AE%A4")
 
         result, tables = {}, self.title_2_record("公共事务实录", 1, filter=["table"])
-        for table in tables:
+        for table in tables[:1]:
             title = table.find_element(By.XPATH, "./tbody/tr[1]/th/big/big").stext
             try:
                 link = table.find_element(By.XPATH, "./tbody/tr[2]/td[2]/a").get_attribute('href')

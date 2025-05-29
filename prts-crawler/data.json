@@ -725,13 +725,19 @@
     {
         "name": "露托",
         "head": {
-            "默认": "https://media.prts.wiki/7/77/头像_露托.png"
+            "默认": "https://media.prts.wiki/7/77/头像_露托.png",
+            "寄遥思": "https://media.prts.wiki/8/83/头像_露托_skin1.png"
         },
         "spine": {
             "默认": {
                 "正面": "https://torappu.prts.wiki/assets/char_spine/char_4130_luton/defaultskin/front/char_4130_luton",
                 "背面": "https://torappu.prts.wiki/assets/char_spine/char_4130_luton/defaultskin/back/char_4130_luton",
                 "基建": "https://torappu.prts.wiki/assets/char_spine/char_4130_luton/defaultskin/build/build_char_4130_luton"
+            },
+            "寄遥思": {
+                "背面": "https://torappu.prts.wiki/assets/char_spine/char_4130_luton/char_4130_luton_yun_6/back/char_4130_luton_yun_6",
+                "基建": "https://torappu.prts.wiki/assets/char_spine/char_4130_luton/char_4130_luton_yun_6/build/build_char_4130_luton_yun_6",
+                "正面": "https://torappu.prts.wiki/assets/char_spine/char_4130_luton/char_4130_luton_yun_6/front/char_4130_luton_yun_6"
             }
         }
     },
@@ -5954,13 +5960,19 @@
     {
         "name": "火神",
         "head": {
-            "默认": "https://media.prts.wiki/f/f1/头像_火神.png"
+            "默认": "https://media.prts.wiki/f/f1/头像_火神.png",
+            "火种": "https://media.prts.wiki/0/07/头像_火神_skin1.png"
         },
         "spine": {
             "默认": {
                 "正面": "https://torappu.prts.wiki/assets/char_spine/char_163_hpsts/defaultskin/front/char_163_hpsts",
                 "基建": "https://torappu.prts.wiki/assets/char_spine/char_163_hpsts/defaultskin/build/build_char_163_hpsts",
                 "背面": "https://torappu.prts.wiki/assets/char_spine/char_163_hpsts/defaultskin/back/char_163_hpsts"
+            },
+            "火种": {
+                "基建": "https://torappu.prts.wiki/assets/char_spine/char_163_hpsts/char_163_hpsts_boc_10/build/build_char_163_hpsts_boc_10",
+                "正面": "https://torappu.prts.wiki/assets/char_spine/char_163_hpsts/char_163_hpsts_boc_10/front/char_163_hpsts_boc_10",
+                "背面": "https://torappu.prts.wiki/assets/char_spine/char_163_hpsts/char_163_hpsts_boc_10/back/char_163_hpsts_boc_10"
             }
         }
     },
