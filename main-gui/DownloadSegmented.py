@@ -3,6 +3,7 @@ import sys
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QWidget, QStackedWidget, QVBoxLayout, QLabel
 
+from DeskpetETO.GitCard import GitDownloadInterface
 from DeskpetETO.UserCard import PreviewWindow
 from qfluentwidgets import SegmentedWidget
 
@@ -17,7 +18,7 @@ class DownloadSegmented(QWidget):
         self.stackedWidget = QStackedWidget(self)
         self.vBoxLayout = QVBoxLayout(self)
 
-        self.gitInterface = PreviewWindow()
+        self.gitInterface = GitDownloadInterface()
         self.userInterface = PreviewWindow()
 
         # add items to pivot
