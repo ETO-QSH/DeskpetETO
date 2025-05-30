@@ -6,7 +6,7 @@ from pathlib import Path
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QWidget, QApplication, QButtonGroup, QStackedWidget, QFileDialog, QLabel
+from PyQt5.QtWidgets import QWidget, QApplication, QButtonGroup, QStackedWidget, QFileDialog
 
 from DeskpetETO.ClickableElevated import ClickableElevatedCardWidget
 from DeskpetETO.ImageDropWidget import ImageDropWidget
@@ -18,8 +18,8 @@ from DeskpetETO.StateToolTip import StateToolTip
 from DeskpetETO.ToolCalling import SpinePreviewThread, spine_preview
 
 from qfluentwidgets import (
-    SimpleCardWidget, ToolButton, PrimaryPushButton, FluentIcon, ToolTipFilter, ToolTipPosition, TogglePushButton,
-    HorizontalPipsPager, ConfigItem, InfoBar, InfoBarPosition, ElevatedCardWidget
+    SimpleCardWidget, ToolButton, PrimaryPushButton, FluentIcon, ToolTipFilter, ToolTipPosition,
+    TogglePushButton, HorizontalPipsPager, ConfigItem, InfoBar, InfoBarPosition
 )
 
 

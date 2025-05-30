@@ -1,13 +1,12 @@
 import sys
 import copy
-import json
 from uuid import uuid4
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFontDatabase, QFont
 
 from DeskpetETO.JsonMerger import JsonMerger
-from qfluentwidgets import SmoothScrollArea, isDarkTheme
+from qfluentwidgets import SmoothScrollArea
 from DeskpetETO.CustomCard import CustomCard, AddCard, FilterCard
 
 
@@ -563,9 +562,6 @@ class CardWindow(QtWidgets.QWidget):
         """)
         self.ui.scrollContent.layout().addWidget(self.ui.drop_line)
 
-        # 连接卡片添加信号到样式更新
-        # self.ui.card_manager.card_added.connect(self.setQss)
-
     def _add_sample_cards(self):
         # 添加示例卡片（带图片路径）
         self.ui.add_card({
@@ -616,11 +612,6 @@ class CardWindow(QtWidgets.QWidget):
             'model': '基建',
             'image': r".\resource\img\远行前的野餐.png"
         })
-
-    def setQss(self):
-        theme = 'dark' if isDarkTheme() else 'light'
-        with open(f'./resource/{theme}/demo.qss', encoding='utf-8') as f:
-            self.setStyleSheet(f.read())
 
 
 if __name__ == '__main__':

@@ -22,12 +22,17 @@ CloseButton {
     qproperty-normalBackgroundColor: transparent;
 }
 
-ComboBox {
+ComboBoxSettingCard ComboBox {
     min-width: 40px;
     max-width: 40px;
 }
 
+VersionUpdateCard ComboBox {
+    min-width: 75px;
+    max-width: 75px;
+}
+
 ColorPickerButton {
-    min-height: 32px;  /* 最小高度 */
+    min-height: 32px;
     max-height: 32px;
 }

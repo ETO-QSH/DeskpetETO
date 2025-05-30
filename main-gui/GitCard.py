@@ -1,7 +1,8 @@
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout
 
-from DeskpetETO.test import VersionUpdateCard, sample_data, current_tag
 from qfluentwidgets import SimpleCardWidget
+
+from DeskpetETO.VersionUpdateCard import VersionUpdateCard, sample_data, current_tag
 
 
 class GitDownloadInterface(SimpleCardWidget):
@@ -25,13 +26,13 @@ class GitDownloadInterface(SimpleCardWidget):
         center_layout.addStretch(1)
 
         # 创建并添加卡片
-        self.card1 = VersionUpdateCard(version_data=sample_data, current_tag=current_tag)
+        self.card1 = VersionUpdateCard(titel="模型更新", version_data=sample_data, current_tag=current_tag)
         center_layout.addWidget(self.card1)
 
         # 中间弹簧
         center_layout.addStretch(1)
 
-        self.card2 = VersionUpdateCard(version_data=sample_data, current_tag=current_tag)
+        self.card2 = VersionUpdateCard(titel="软件更新", version_data=sample_data, current_tag=current_tag)
         center_layout.addWidget(self.card2)
 
         # 底部弹簧
@@ -41,15 +42,3 @@ class GitDownloadInterface(SimpleCardWidget):
 
         # 右侧弹簧
         main_layout.addStretch(1)
-
-        # 自定义卡片数据（示例）
-        self.card1.current_version = "v1.0.0"
-        self.card2.current_version = "v2.1.3"
-        self.card1.version_data = {
-            "v1.0.0": ["• 初始版本"],
-            "v1.1.0": ["• 新增功能A", "• 修复问题B"]
-        }
-        self.card2.version_data = {
-            "v2.1.3": ["• 当前稳定版"],
-            "v2.2.0": ["• 新增模块X", "• 优化性能Y"]
-        }

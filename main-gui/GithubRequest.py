@@ -10,9 +10,10 @@ def get_repo_releases(owner, repo):
     for release in releases:
         release_data = {"tag": release["tag_name"], "title": release["name"], "body": release["body"], "assets": []}
         for asset in release.get("assets", []):
-            asset_data = {"name": asset["name"], "download_url": asset.get("browser_download_url", "")}
+            asset_data = {"name": asset["name"], "download_url": asset.get("browser_download_url", ""), 'size': asset["size"]}
             release_data["assets"].append(asset_data)
         release_info.append(release_data)
+    print(release)
     return release_info
 
 
