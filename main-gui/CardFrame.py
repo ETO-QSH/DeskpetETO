@@ -28,10 +28,10 @@ class CardManager(QtCore.QObject):
 
 class Ui_CardFrame(object):
     def setupUi(self, CardFrame):
-        CardFrame.resize(540, 810)
+        CardFrame.resize(540, 840)
         CardFrame.setObjectName("CardInterface")
-        CardFrame.setMinimumSize(QtCore.QSize(540, 810))
-        CardFrame.setMaximumSize(QtCore.QSize(540, 810))
+        CardFrame.setMinimumSize(QtCore.QSize(540, 840))
+        CardFrame.setMaximumSize(QtCore.QSize(540, 840))
 
         # 加载自定义字体
         self.font_id = QFontDatabase.addApplicationFont(r".\resource\font\Lolita.ttf")
@@ -43,7 +43,7 @@ class Ui_CardFrame(object):
             print("Failed to load font")
 
         self.widget = QtWidgets.QWidget(CardFrame)
-        self.widget.setGeometry(QtCore.QRect(0, 0, 540, 810))
+        self.widget.setGeometry(QtCore.QRect(0, 0, 540, 840))
         self.widget.setObjectName("widget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.widget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -51,8 +51,8 @@ class Ui_CardFrame(object):
 
         # 初始化滚动区域
         self.SmoothScrollArea = SmoothScrollArea(self.widget)
-        self.SmoothScrollArea.setGeometry(QtCore.QRect(0, 0, 540, 670))
-        self.SmoothScrollArea.setMinimumSize(QtCore.QSize(540, 670))
+        self.SmoothScrollArea.setGeometry(QtCore.QRect(0, 0, 540, 700))
+        self.SmoothScrollArea.setMinimumSize(QtCore.QSize(540, 700))
         self.SmoothScrollArea.setMaximumSize(QtCore.QSize(540, 4500))
         self.SmoothScrollArea.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.SmoothScrollArea.setWidgetResizable(False)

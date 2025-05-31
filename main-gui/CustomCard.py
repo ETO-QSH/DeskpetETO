@@ -385,7 +385,7 @@ class AddCard(QWidget):
             self.on_skin_changed("默认")
         elif skins:
             self.combo_skin.setCurrentIndex(0)
-            self.on_skin_changed(self.combo_skin.getCurrentText())
+            self.on_skin_changed(self.combo_skin.itemText(0))
 
     def on_skin_changed(self, skin):
         """皮肤选择变化事件"""

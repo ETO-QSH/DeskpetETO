@@ -5,6 +5,10 @@ from pathlib import Path
 
 from PyQt5.QtCore import pyqtSignal, QThread
 
+from DeskpetETO.Setting import cfg
+
+TEMP = os.path.join(cfg.get(cfg.downloadFolder), "toolTemp")
+
 
 class SpinePreviewThread(QThread):
     """ 骨骼预览生成线程 """
@@ -18,8 +22,8 @@ class SpinePreviewThread(QThread):
 
     def run(self):
         try:
-            os.makedirs("./output/temp", exist_ok=True)
-            path = os.path.join("./output/temp", Path(self.skel_path).stem)
+            os.makedirs(TEMP, exist_ok=True)
+            path = os.path.join(TEMP, Path(self.skel_path).stem)
 
             files = []
             for file, suffix in [(self.skel_path, ".skel"), (self.atlas_path, ".atlas"), (self.png_path, ".png")]:
@@ -42,8 +46,8 @@ class SpinePreviewThread(QThread):
 
 
 def spine_preview(skel, atlas, png):
-    os.makedirs("./output/temp", exist_ok=True)
-    path = os.path.join("./output/temp", Path(skel).stem)
+    os.makedirs(TEMP, exist_ok=True)
+    path = os.path.join(TEMP, Path(skel).stem)
 
     files = []
     for file, suffix in [(skel, ".skel"), (atlas, ".atlas"), (png, ".png")]:

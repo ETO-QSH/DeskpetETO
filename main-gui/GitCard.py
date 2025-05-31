@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout
 
 from qfluentwidgets import SimpleCardWidget
 
-from DeskpetETO.VersionUpdateCard import VersionUpdateCard, sample_data, current_tag
+from DeskpetETO.VersionUpdateCard import VersionUpdateCard, current_info
 
 
 class GitDownloadInterface(SimpleCardWidget):
@@ -26,13 +26,13 @@ class GitDownloadInterface(SimpleCardWidget):
         center_layout.addStretch(1)
 
         # 创建并添加卡片
-        self.card1 = VersionUpdateCard(titel="模型更新", version_data=sample_data, current_tag=current_tag)
+        self.card1 = VersionUpdateCard(title="模型更新", current_info=current_info, owner_repo=("ETO-QSH", "DeskpetETO-download"))
         center_layout.addWidget(self.card1)
 
         # 中间弹簧
         center_layout.addStretch(1)
 
-        self.card2 = VersionUpdateCard(titel="软件更新", version_data=sample_data, current_tag=current_tag)
+        self.card2 = VersionUpdateCard(title="软件更新", current_info=current_info, owner_repo=("ETO-QSH", "DeskpetETO-download"))
         center_layout.addWidget(self.card2)
 
         # 底部弹簧

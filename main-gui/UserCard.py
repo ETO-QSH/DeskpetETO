@@ -1,6 +1,8 @@
 import os
 import sys
+import copy
 import json
+import shutil
 from pathlib import Path
 
 from PyQt5 import QtCore, QtWidgets
@@ -28,6 +30,8 @@ class Ui_UserCard(object):
         Form.setObjectName("UserCard")
         Form.resize(450, 720)
         Form.setFixedSize(450, 720)  # 合并尺寸限制
+
+        self.json_merger = JsonMerger()  # 初始化管理器
 
         # 初始化状态监控
         self.is_full = None
@@ -301,7 +305,6 @@ class Ui_UserCard(object):
         self.fileListCard._checkState()
 
         if self.is_full and self.is_same:
-            self.json_merger = JsonMerger()
             agent_list = self.json_merger.data.keys()
             skin_list = []
             brand_list = self.json_merger.brands
@@ -314,11 +317,41 @@ class Ui_UserCard(object):
             w.cancelButton.setText("取消")
 
             if w.exec():
-                print(w.getInputs())
+                infos = w.getInputs()
                 paths = self.fileListCard.files
                 paths["head"] = self.widget3.image_path
+
+                user_dir = "./user_saves"
+                os.makedirs(user_dir, exist_ok=True)
+
+                head_path = os.path.join(user_dir, infos['干员代号'], "head", f"{infos['皮肤名称']}.png")
+                os.makedirs(os.path.join("resource", Path(head_path).parent), exist_ok=True)
+                shutil.copy(self.widget3.image_path, os.path.join("resource", head_path))
+
+                spine_paths = copy.deepcopy(paths)
+                for item in ["png", "skel", "atlas"]:
+                    spine_path = os.path.join(
+                        user_dir, infos['干员代号'], "spine", infos['皮肤名称'], infos['模型分类'], Path(paths[item]).name
+                    )
+                    os.makedirs(os.path.join("resource", Path(spine_path).parent), exist_ok=True)
+                    shutil.copy(paths[item], os.path.join("resource", spine_path))
+                    spine_paths[item] = spine_path
+
+                self.json_merger.save_user_saves({
+                    infos['干员代号']: {
+                        infos['皮肤名称']: {
+                            "head": head_path,
+                            infos['模型分类']: {
+                                "png": spine_paths["png"],
+                                "skel": spine_paths["skel"],
+                                "atlas": spine_paths["atlas"]
+                            }
+                        }
+                    }
+                })
+
+                self.json_merger.save_user_brands({infos["品牌分类"]: [infos['皮肤名称']]})
                 self.clear_info()
-                print(paths)
 
         else:
             InfoBar.warning(
@@ -389,14 +422,26 @@ class Ui_UserCard(object):
                 self.error_infor("模型文件错误", "skel, atlas, png 文件名不一致")
                 return
 
-            code, _ = spine_preview(item["skel"], item["atlas"], item["png"])
+            code, info = spine_preview(item["skel"], item["atlas"], item["png"])
 
-            if code == 1:
-                self.error_infor("模型解析失败")
+            if code == 0:
+                self.save_item_info(item)
             elif code == -1:
-                self.error_infor("发生其他错误")
+                self.error_infor("发生其他错误", f"{item['agent']}-{item['skin']}-{item['model']}")
+                continue
+            else:
+                self.error_infor("模型解析失败", info)
+                continue
 
-        print(data)
+        InfoBar.success(
+            title='SUCCESS',
+            content="已添加所有有效模型！",
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=3000,
+            parent=self.content_widget
+        )
 
     def error_infor(self, title, content=""):
         InfoBar.error(
@@ -408,6 +453,38 @@ class Ui_UserCard(object):
             duration=3000,
             parent=self.content_widget
         )
+
+    def save_item_info(self, item):
+        user_dir = "./user_saves"
+        os.makedirs(user_dir, exist_ok=True)
+
+        head_path = os.path.join(user_dir, item['name'], "head", f"{item['skin']}.png")
+        os.makedirs(os.path.join("resource", Path(head_path).parent), exist_ok=True)
+        shutil.copy(item['head'], os.path.join("resource", head_path))
+
+        spine_paths = {"png": None, "skel": None, "atlas": None, }
+        for it in spine_paths.keys():
+            spine_path = os.path.join(
+                user_dir, item['agent'], "spine", item['skin'], item['model'], Path(item[it]).name
+            )
+            os.makedirs(os.path.join("resource", Path(spine_path).parent), exist_ok=True)
+            shutil.copy(item[it], os.path.join("resource", spine_path))
+            spine_paths[it] = spine_path
+
+        self.json_merger.save_user_saves({
+            item['agent']: {
+                item['skin']: {
+                    "head": head_path,
+                    item['model']: {
+                        "png": item["png"],
+                        "skel": item["skel"],
+                        "atlas": item["atlas"]
+                    }
+                }
+            }
+        })
+
+        self.json_merger.save_user_brands({item["brand"]: [item['skin']]})
 
 
 class PreviewWindow(QWidget):
