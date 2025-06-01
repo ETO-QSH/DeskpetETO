@@ -6,7 +6,7 @@
 
 using namespace spine;
 
-// å‡¸åŒ…ç®—æ³•ï¼ˆAndrew's Monotone Chainï¼‰
+// Í¹°üËã·¨£¨Andrew's Monotone Chain£©
 static int cross(const sf::Vector2i& O, const sf::Vector2i& A, const sf::Vector2i& B) {
     return (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
 }
@@ -29,13 +29,20 @@ static std::vector<sf::Vector2i> convexHull(std::vector<sf::Vector2i> P) {
     return H;
 }
 
+inline void updateMinMax(float x, float y, float& minX, float& minY, float& maxX, float& maxY) {
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+}
+
 int main(int argc, char** argv) {
     if (argc < 4) {
         printf("Usage: %s <skeleton.skel> <atlas.atlas> <output.png>\n", argv[0]);
         return 1;
     }
 
-    // åŠ è½½èµ„æº
+    // ¼ÓÔØ×ÊÔ´
     const char* path = argv[3];
     Atlas* atlas = Atlas_createFromFile(argv[2], 0);
     SkeletonBinary* binary = SkeletonBinary_create(atlas);
@@ -53,88 +60,103 @@ int main(int argc, char** argv) {
 
     Skeleton* skeleton = drawable->skeleton;
 
-    // 1. è®¡ç®—åˆæ­¥åŒ…å›´ç›’
+    // 1. ¼ÆËã³õ²½°üÎ§ºĞ
     float minX = std::numeric_limits<float>::max();
     float minY = std::numeric_limits<float>::max();
     float maxX = std::numeric_limits<float>::lowest();
     float maxY = std::numeric_limits<float>::lowest();
     bool hasAttachment = false;
 
-    AnimationState_setAnimationByName(drawable->state, 0, "Default", false);
-    drawable->state->tracks[0]->trackTime = 16;
     Skeleton_setToSetupPose(skeleton);
+    AnimationState_setAnimationByName(drawable->state, 0, "Default", false);
     AnimationState_apply(drawable->state, skeleton);
+
+    drawable->state->tracks[0]->trackTime = 0;
     Skeleton_updateWorldTransform(skeleton);
+
+    // ÊÖ¶¯´´½¨ clipper
+    spSkeletonClipping* clipper = spSkeletonClipping_create();
 
     for (int i = 0; i < skeleton->slotsCount; ++i) {
         spSlot* slot = skeleton->drawOrder[i];
         spAttachment* attachment = slot->attachment;
-        if (!attachment) continue;
 
+        // Ìø¹ı²»¿É¼û»òÎŞĞ§µÄ Slot
+        if (!attachment || slot->color.a == 0 || !slot->bone->active) {
+            spSkeletonClipping_clipEnd(clipper, slot);
+            continue;
+        }
+
+        // ´¦Àí¸½¼şÀàĞÍ
         if (attachment->type == SP_ATTACHMENT_REGION) {
             spRegionAttachment* region = (spRegionAttachment*)attachment;
-            hasAttachment = true;
             float vertices[8];
             spRegionAttachment_computeWorldVertices(region, slot->bone, vertices, 0, 2);
+
             for (int v = 0; v < 8; v += 2) {
-                float x = vertices[v];
-                float y = vertices[v + 1];
-                if (x < minX) minX = x;
-                if (y < minY) minY = y;
-                if (x > maxX) maxX = x;
-                if (y > maxY) maxY = y;
+                updateMinMax(vertices[v], vertices[v + 1], minX, minY, maxX, maxY);
             }
         }
-        if (attachment->type == SP_ATTACHMENT_MESH) {
+        else if (attachment->type == SP_ATTACHMENT_MESH) {
             spMeshAttachment* mesh = (spMeshAttachment*)attachment;
-            hasAttachment = true;
-            int vertexCount = mesh->super.worldVerticesLength;
-            std::vector<float> worldVertices(vertexCount);
-            spVertexAttachment_computeWorldVertices(
-                (spVertexAttachment*)mesh, slot, 0, vertexCount, worldVertices.data(), 0, 2
-            );
-            for (int v = 0; v < vertexCount; v += 2) {
-                float x = worldVertices[v];
-                float y = worldVertices[v + 1];
-                if (x < minX) minX = x;
-                if (y < minY) minY = y;
-                if (x > maxX) maxX = x;
-                if (y > maxY) maxY = y;
+            std::vector<float> vertices(mesh->super.worldVerticesLength);
+            spVertexAttachment_computeWorldVertices(SUPER(mesh), slot, 0, mesh->super.worldVerticesLength, vertices.data(), 0, 2);
+
+            for (int v = 0; v < vertices.size(); v += 2) {
+                updateMinMax(vertices[v], vertices[v + 1], minX, minY, maxX, maxY);
             }
         }
+        else if (attachment->type == SP_ATTACHMENT_CLIPPING) {
+            spClippingAttachment* clip = (spClippingAttachment*)attachment;
+            spSkeletonClipping_clipStart(clipper, slot, clip);
+            continue;
+        }
+
+        // ´¦Àí²Ã¼ôºóµÄ¶¥µã
+        if (spSkeletonClipping_isClipping(clipper)) {
+            float* clippedVertices = clipper->clippedVertices->items;
+            int count = clipper->clippedVertices->size;
+            for (int v = 0; v < count; v += 2) {
+                updateMinMax(clippedVertices[v], clippedVertices[v + 1], minX, minY, maxX, maxY);
+            }
+        }
+
+        spSkeletonClipping_clipEnd(clipper, slot);
     }
-    if (!hasAttachment) {
-        printf("No RegionAttachment found!\n");
-        return 3;
-    }
+
+    // Ïú»Ù clipper
+    spSkeletonClipping_dispose(clipper);
 
     float bboxWidth = maxX - minX;
     float bboxHeight = maxY - minY;
 
-    // 2. ç”»å¸ƒå¤§å°æ ¹æ®åŒ…å›´ç›’è°ƒæ•´
-    int margin = 0; // å¯é€‰ï¼šç»™åŒ…å›´ç›’åŠ ç‚¹è¾¹è·
+    // 2. »­²¼´óĞ¡¸ù¾İ°üÎ§ºĞµ÷Õû
+    int margin = 0; // ¿ÉÑ¡£º¸ø°üÎ§ºĞ¼Óµã±ß¾à
     int texWidth = static_cast<int>(bboxWidth) + margin * 2;
     int texHeight = static_cast<int>(bboxHeight) + margin * 2;
 
-    // è®©åŒ…å›´ç›’ä¸­å¿ƒå¯¹é½ç”»å¸ƒä¸­å¿ƒ
+    // ÈÃ°üÎ§ºĞÖĞĞÄ¶ÔÆë»­²¼ÖĞĞÄ
     skeleton->x = texWidth / 2.0f - (minX + bboxWidth / 2.0f);
     skeleton->y = texHeight / 2.0f - (minY + bboxHeight / 2.0f);
     Skeleton_updateWorldTransform(skeleton);
 
-    // 3. æ¸²æŸ“åˆ°çº¹ç†
+    // 3. äÖÈ¾µ½ÎÆÀí
     sf::RenderTexture renderTexture;
     renderTexture.create(texWidth, texHeight);
     renderTexture.clear(sf::Color::Transparent);
     renderTexture.draw(*drawable);
     renderTexture.display();
 
-    // 4. æå–åƒç´ ç‚¹ï¼Œè®¡ç®—åƒç´ çº§å‡¸åŒ…
+    // 4. ÌáÈ¡ÏñËØµã£¬¼ÆËãÏñËØ¼¶Í¹°ü
     sf::Image image = renderTexture.getTexture().copyToImage();
     std::vector<sf::Vector2i> points;
+    float totalMoment = 0.0f; // Ë³±ã¼ÆËãË®Æ½ÖØĞÄ
+
     for (unsigned y = 0; y < image.getSize().y; ++y) {
         for (unsigned x = 0; x < image.getSize().x; ++x) {
             if (image.getPixel(x, y).a > 0) {
                 points.emplace_back(x, y);
+                totalMoment += x * 1.0f; // Ê¹ÓÃÁĞË÷Òı×÷ÎªÁ¦¾Ø
             }
         }
     }
@@ -142,9 +164,12 @@ int main(int argc, char** argv) {
         printf("No non-transparent pixels found!\n");
         return 4;
     }
-    auto hull = convexHull(points);
 
-    // 5. è®¡ç®—å‡¸åŒ…åŒ…å›´ç›’
+    // 5. ¼ÆËãÍ¹°ü°üÎ§ºĞ
+    auto hull = convexHull(points);
+    float centroidX = totalMoment / points.size(); // ÖØĞÄ = ×ÜÁ¦¾Ø / ×ÜÖÊÁ¿
+
+    // ¼ÆËãÍ¹°ü°üÎ§ºĞ
     int hullMinX = texWidth, hullMinY = texHeight, hullMaxX = 0, hullMaxY = 0;
     for (const auto& p : hull) {
         if (p.x < hullMinX) hullMinX = p.x;
@@ -155,26 +180,78 @@ int main(int argc, char** argv) {
     int hullWidth = hullMaxX - hullMinX;
     int hullHeight = hullMaxY - hullMinY;
 
-    // 6. é‡æ–°å±…ä¸­å‡¸åŒ…åˆ°ç”»å¸ƒ
+    // 6. »ùÓÚÖØĞÄµ÷Õû°üÎ§¿ò
+    int targetCenterX = static_cast<int>(centroidX);
+    int adjustedMinX, adjustedMaxX;
+
+    // ¼ÆËãÔ­Ê¼°üÎ§¿òµÄÖĞĞÄ
+    int originalCenterX = (hullMinX + hullMaxX) / 2;
+
+    // È·¶¨ÄÄÌõ±ßĞèÒªÒÆ¶¯
+    int adjustedWidth = hullWidth;
+    int offset = (targetCenterX - originalCenterX) * 2;
+
+    if (centroidX > originalCenterX) {
+        adjustedMinX = hullMinX;
+        adjustedMaxX = hullMinX + adjustedWidth + offset;
+    }
+    else {
+        adjustedMaxX = hullMaxX;
+        adjustedMinX = hullMaxX - adjustedWidth + offset;
+    }
+
+    // ¸üĞÂ×îÖÕµÄ°üÎ§¿ò³ß´ç
+    int finalHullWidth = adjustedMaxX - adjustedMinX;
+    int finalHullHeight = hullHeight;
+
+    // 7. ÖØĞÂ¾ÓÖĞµ÷ÕûºóµÄ°üÎ§¿òµ½»­²¼
     const int finalSize = 768;
+    int finalTextureMargin = (finalSize - std::max(finalHullWidth, finalHullHeight)) / 2;
 
-    int hullCenterX = (hullMinX + hullMaxX) / 2;
-    int hullCenterY = (hullMinY + hullMaxY) / 2;
-
-    int offsetX = finalSize / 2 - hullCenterX;
-    int offsetY = finalSize / 2 - hullCenterY;
-
+    // ´´½¨ĞÂµÄÎÆÀí²¢»æÖÆµ÷ÕûºóµÄÍ¼Ïñ
     sf::RenderTexture finalTexture;
     finalTexture.create(finalSize, finalSize);
     finalTexture.clear(sf::Color::Transparent);
 
-    // é‡æ–°æ¸²æŸ“ï¼Œå¹³ç§»åˆ°æ–°ç”»å¸ƒä¸­å¿ƒ
+    // ¼ÆËãµ÷ÕûºóµÄÍ¼ÏñÎ»ÖÃ
+    int finalCenterX = finalSize / 2;
+    int finalCenterY = finalSize / 2;
+    int offsetX = finalCenterX - ((adjustedMinX + adjustedMaxX) / 2);
+    int offsetY = finalCenterY - ((hullMinY + hullMaxY) / 2);
+
     sf::Sprite sprite(renderTexture.getTexture());
     sprite.setPosition(static_cast<float>(offsetX), static_cast<float>(offsetY));
     finalTexture.draw(sprite);
     finalTexture.display();
 
-    // ä¿å­˜ä¸ºPNG
+    // Êä³öÔ­Ê¼ºÍµ÷ÕûºóµÄ°üÎ§¿ò³ß´ç
+    // printf("Center: (%d, %d)\n", originalCenterX, targetCenterX);
+    // printf("Original Bounding Box: (%d, %d)\n", hullWidth, hullHeight);
+    // printf("Adjusted Bounding Box: (%d, %d)\n", finalHullWidth, finalHullHeight);
+
+    // ´´½¨Ô¤ÀÀ´°¿Ú
+    sf::RenderWindow window(sf::VideoMode(finalSize, finalSize), "Preview");
+    window.setVerticalSyncEnabled(true);
+
+    // ÊÂ¼şÑ­»·
+    while (window.isOpen()) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed)
+                window.close();
+            // °´ESC¼üÒ²¿ÉÒÔ¹Ø±Õ
+            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape)
+                window.close();
+        }
+
+        // »æÖÆµ½´°¿Ú
+        window.clear(sf::Color(35, 35, 35)); // Éî»ÒÉ«±³¾°
+        sf::Sprite finalSprite(finalTexture.getTexture());
+        window.draw(finalSprite);
+        window.display();
+    }
+
+    // ±£´æÎªPNG
     if (!finalTexture.getTexture().copyToImage().saveToFile(path)) {
         printf("Failed to save image\n");
         return 5;
@@ -183,7 +260,7 @@ int main(int argc, char** argv) {
         printf("Tex: (%d, %d)\n", hullWidth, hullHeight);
     }
 
-    // æ¸…ç†èµ„æº
+    // ÇåÀí×ÊÔ´
     delete drawable;
     SkeletonData_dispose(skeletonData);
     Atlas_dispose(atlas);
