@@ -19,6 +19,32 @@
         "Smooth": 0.35,
         "Velocity": 5
     },
+    "Version": {
+        "Library": {
+            "assets": [
+                {
+                    "download_url": "https://github.com/ETO-QSH/DeskpetETO-download/releases/download/2025.5.2/DeskpetETO.zip",
+                    "name": "DeskpetETO.zip",
+                    "size": 170655456
+                }
+            ],
+            "body": "截止至【众生行记】",
+            "tag": "2025.5.2",
+            "title": "Deskpet model before 2025-5-2"
+        },
+        "Software": {
+            "assets": [
+                {
+                    "download_url": "https://github.com/ETO-QSH/DeskpetETO-download/releases/download/2025.5.2/DeskpetETO.zip",
+                    "name": "DeskpetETO.zip",
+                    "size": 170655456
+                }
+            ],
+            "body": "截止至【众生行记】",
+            "tag": "2025.5.2",
+            "title": "Deskpet model before 2025-5-2"
+        }
+    },
     "QFluentWidgets": {
         "ThemeColor": "#ff377caa",
         "ThemeMode": "Dark"

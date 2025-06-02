@@ -85,10 +85,11 @@ class CustomDownloadWindow(MessageBoxBase):
         self.fileName = None
 
         self.downloadThread = None
+        self.download_success = False
         self.cancelButton.setVisible(False)
 
-        self.yesButton.setText("取消下载")
-        self.yesButton.setFont(QFont('萝莉体', 9))
+        self.yesButton.setText("取 消 下 载")
+        self.yesButton.setFont(QFont('萝莉体', 10))
         self.yesButton.clicked.disconnect()  # 解除父类绑定
         self.yesButton.clicked.connect(self._handle_cancel)  # 绑定到新的取消方法
 
@@ -145,6 +146,7 @@ class CustomDownloadWindow(MessageBoxBase):
         self.downloadThread.downloadError.connect(self._show_error)
         self.downloadThread.start()
         self.exec_()
+        return self.download_success
 
     def _handle_cancel(self):
         """处理取消下载"""
@@ -179,7 +181,9 @@ class CustomDownloadWindow(MessageBoxBase):
 
         # 显示解压窗口
         unzip_window = UnzipWindow(self.parent())
-        unzip_window.start_unzip(zip_path)  # 自动开始解压
+        if res := unzip_window.start_unzip(zip_path):  # 自动开始解压
+            os.remove(zip_path)
+        self.download_success = res
 
     def _show_error(self, message):
         """显示错误信息"""
@@ -241,6 +245,8 @@ class UnzipWindow(MessageBoxBase):
         self.setWindowTitle("文件解压中")
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)  # 禁用关闭按钮
 
+        self.unzip_success = False  # 返回状态
+
         # 隐藏所有按钮
         self.yesButton.setVisible(False)
         self.cancelButton.setVisible(False)
@@ -266,6 +272,7 @@ class UnzipWindow(MessageBoxBase):
         self.worker.finished.connect(self._handle_result)
         self.worker.start()
         self.exec_()
+        return self.unzip_success
 
     def _handle_result(self, success, message):
         """处理解压结果"""
@@ -278,6 +285,7 @@ class UnzipWindow(MessageBoxBase):
                 duration=3000,
                 position=InfoBarPosition.TOP
             )
+            self.unzip_success = True
         else:
             self.reject()
             InfoBar.error(
@@ -293,7 +301,7 @@ def show_download_dialog(parent, url, totalSize, fileName):
     """显示下载对话框"""
     window = CustomDownloadWindow(parent)
     window.setDownloadUrl(url, totalSize, fileName)
-    window.startDownload()
+    return window.startDownload()
 
 
 if __name__ == "__main__":

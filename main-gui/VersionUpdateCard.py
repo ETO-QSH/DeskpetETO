@@ -2,6 +2,7 @@ from PyQt5.QtCore import Qt, QThread
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QStackedWidget, QFrame
 
+from DeskpetETO.Setting import cfg
 from qfluentwidgets import (
     HeaderCardWidget, BodyLabel, StrongBodyLabel, PrimaryPushButton, FluentIcon, SimpleCardWidget,
     SmoothScrollArea, TransparentToolButton, ComboBox, IndeterminateProgressBar, InfoBar, InfoBarPosition
@@ -16,13 +17,15 @@ class VersionUpdateCard(HeaderCardWidget):
         super().__init__(parent)
         self.setFixedSize(420, 335)
         self.setTitle(title)
+        self.titleTag = title
 
         # 处理当前版本信息
-        self.current_info = current_info
         self.version_data = {}
+        self.original_data = {}
+        self.current_info = current_info
         self.current_tag = current_info['tag']
-        self.owner, self.repo = owner_repo
 
+        self.owner, self.repo = owner_repo
         self.viewLayout.setContentsMargins(24, 0, 24, 0)
 
         # 初始化UI
@@ -113,6 +116,7 @@ class VersionUpdateCard(HeaderCardWidget):
     def _process_data(self, raw_data):
         """处理原始数据格式"""
         processed = {}
+        original = {}
         for item in raw_data:
             processed[item['tag']] = {
                 'title': item['title'], 'items': [f"• {line}" for line in item['body'].split('\n') if line.strip()],
@@ -120,7 +124,8 @@ class VersionUpdateCard(HeaderCardWidget):
                 'name': item['assets'][0]['name'] if item['assets'] else None,
                 'size': item['assets'][0]['size'] if item['assets'] else None
             }
-        return processed
+            original[item['tag']] = item
+        return processed, original
 
     def _parse_version(self, tag):
         """解析版本号为可比较的元组"""
@@ -201,7 +206,15 @@ class VersionUpdateCard(HeaderCardWidget):
             url = self.version_data[selected]['url']
             size = self.version_data[selected]['size']
             name = self.version_data[selected]['name']
-            show_download_dialog(self, url, size, name)
+
+            if show_download_dialog(self, url, size, name):
+                if self.titleTag == "模型更新":
+                    cfg.set(cfg.library_update, self.original_data[selected])
+                elif self.titleTag == "软件更新":
+                    cfg.set(cfg.software_update, self.original_data[selected])
+
+                # 重新刷新整个卡片
+                self.refresh_card(self.original_data[selected])
 
     def _fetch_versions(self):
         """获取版本信息"""
@@ -220,7 +233,7 @@ class VersionUpdateCard(HeaderCardWidget):
         """处理获取到的版本信息"""
         self.loading_progress.hide()
         if success:
-            self.version_data = self._process_data(data)
+            self.version_data, self.original_data = self._process_data(data)
             self._switch_mode()
         else:
             self._show_error_info(error_info)
@@ -235,6 +248,23 @@ class VersionUpdateCard(HeaderCardWidget):
             duration=3000,
             parent=self
         )
+
+    def refresh_card(self, current_info):
+        """刷新整个卡片"""
+        self.version_data = {}
+        self.original_data = {}
+        self.current_info = current_info
+        self.current_tag = current_info['tag']
+
+        # 清除布局中的所有内容
+        while self.viewLayout.count():
+            child = self.viewLayout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        # 重新初始化UI
+        self._init_ui()
+        self._refresh_info()
 
 
 current_info = {'tag': '2023.10.5', 'title': 'Deskpet model before 2023-10-5', 'body': '截止至【纷争演绎】',

@@ -1,7 +1,6 @@
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QFileDialog
 
-from DeskpetETO.FileListSettingCard import FileListSettingCard
 from qfluentwidgets import (
     SettingCardGroup, SwitchSettingCard, PushSettingCard, FluentIcon, ConfigItem, ComboBoxSettingCard,
     ScrollArea, ExpandLayout, Theme, InfoBar, setTheme, setThemeColor, isDarkTheme, QConfig,
@@ -40,6 +39,11 @@ class Config(QConfig):
     velocity = RangeConfigItem("Animation", "Velocity", 5, RangeValidator(0, 10))
     dynamic = RangeConfigItem("Animation", "Dynamic", 2, RangeValidator(0, 6))
     modelSize = RangeConfigItem("Animation", "ModelSize", 0.0, RangeValidator2F(-2.0, 2.0))
+
+    none = {'tag': '0.0.0', 'title': 'None information', 'body': '', 'assets': [{'name': '???', 'size': 0, 'download_url': 'null'}]}
+
+    library_update = ConfigItem("Version", "Library", none)  # 模型更新信息
+    software_update = ConfigItem("Version", "Software", none)  # 软件更新信息
 
 
 cfg = Config()
