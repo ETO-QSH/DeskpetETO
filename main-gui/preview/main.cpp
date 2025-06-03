@@ -230,26 +230,26 @@ int main(int argc, char** argv) {
     // printf("Adjusted Bounding Box: (%d, %d)\n", finalHullWidth, finalHullHeight);
 
     // 创建预览窗口
-    sf::RenderWindow window(sf::VideoMode(finalSize, finalSize), "Preview");
-    window.setVerticalSyncEnabled(true);
+    // sf::RenderWindow window(sf::VideoMode(finalSize, finalSize), "Preview");
+    // window.setVerticalSyncEnabled(true);
 
     // 事件循环
-    while (window.isOpen()) {
-        sf::Event event;
-        while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
-            // 按ESC键也可以关闭
-            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape)
-                window.close();
-        }
-
-        // 绘制到窗口
-        window.clear(sf::Color(35, 35, 35)); // 深灰色背景
-        sf::Sprite finalSprite(finalTexture.getTexture());
-        window.draw(finalSprite);
-        window.display();
-    }
+    // while (window.isOpen()) {
+    //     sf::Event event;
+    //     while (window.pollEvent(event)) {
+    //         if (event.type == sf::Event::Closed)
+    //             window.close();
+    //         // 按ESC键也可以关闭
+    //         if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape)
+    //             window.close();
+    //     }
+    // 
+    //     // 绘制到窗口
+    //     window.clear(sf::Color(35, 35, 35)); // 深灰色背景
+    //     sf::Sprite finalSprite(finalTexture.getTexture());
+    //     window.draw(finalSprite);
+    //     window.display();
+    // }
 
     // 保存为PNG
     if (!finalTexture.getTexture().copyToImage().saveToFile(path)) {
@@ -257,7 +257,7 @@ int main(int argc, char** argv) {
         return 5;
     }
     else {
-        printf("Tex: (%d, %d)\n", hullWidth, hullHeight);
+        printf("Tex: (%d, %d)\n", finalHullWidth, finalHullHeight);
     }
 
     // 清理资源
