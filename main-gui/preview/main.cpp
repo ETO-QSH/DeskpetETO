@@ -222,7 +222,7 @@ int main(int argc, char** argv) {
 
     for (unsigned y = 0; y < image.getSize().y; ++y) {
         for (unsigned x = 0; x < image.getSize().x; ++x) {
-            if (image.getPixel(x, y).a > 0) {
+            if (image.getPixel(x, y).a > 12.7) { // 轻微过滤
                 points.emplace_back(x, y);
                 totalMoment += x * 1.0f; // 使用列索引作为力矩
             }
