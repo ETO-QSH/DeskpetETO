@@ -2,6 +2,7 @@
 #include <spine/spine-sfml.h>
 #include <SFML/Graphics.hpp>
 #include <algorithm>
+#include <fstream>
 #include <vector>
 
 using namespace spine;
@@ -43,16 +44,73 @@ int main(int argc, char** argv) {
     }
 
     // 加载资源
-    const char* path = argv[3];
-    Atlas* atlas = Atlas_createFromFile(argv[2], 0);
-    SkeletonBinary* binary = SkeletonBinary_create(atlas);
-    SkeletonData* skeletonData = SkeletonBinary_readSkeletonDataFile(binary, argv[1]);
-    if (!skeletonData) {
-        printf("Error loading skeleton data: %s\n", binary->error);
-        Atlas_dispose(atlas);
-        SkeletonBinary_dispose(binary);
+    const char* skeletonPath = argv[1];
+    const char* atlasPath = argv[2];
+    const char* outputPath = argv[3];
+
+    Atlas* atlas = Atlas_createFromFile(atlasPath, 0);
+    if (!atlas) {
+        printf("Failed to load atlas: %s\n", atlasPath);
         return 2;
     }
+
+    // 检查骨架文件类型
+    std::ifstream file(skeletonPath, std::ios::binary);
+    if (!file) {
+        printf("Failed to open skeleton file: %s\n", skeletonPath);
+        Atlas_dispose(atlas);
+        return 3;
+    }
+
+    // 读取前10个字节
+    std::vector<char> header(10);
+    file.read(header.data(), 10);
+    if (file.gcount() < 10) {
+        printf("Skeleton file is too short: %s\n", skeletonPath);
+        file.close();
+        Atlas_dispose(atlas);
+        return 4;
+    }
+
+    // 检查是否是JSON文件
+    bool isJson = false;
+    if (file.gcount() >= 10) {
+        std::string jsonSignature(header.data() + 2, 8); // 第3到10个字节
+        if (jsonSignature == "skeleton") {
+            isJson = true;
+        }
+    }
+
+    SkeletonData* skeletonData = nullptr;
+
+    if (isJson) {
+        // 使用JSON解析
+        SkeletonJson* json = SkeletonJson_create(atlas);
+        skeletonData = SkeletonJson_readSkeletonDataFile(json, skeletonPath);
+        if (!skeletonData) {
+            printf("Failed to load skeleton data from JSON file: %s\n", json->error);
+            SkeletonJson_dispose(json);
+            file.close();
+            Atlas_dispose(atlas);
+            return 5;
+        }
+        SkeletonJson_dispose(json);
+    }
+    else {
+        // 使用二进制解析
+        SkeletonBinary* binary = SkeletonBinary_create(atlas);
+        skeletonData = SkeletonBinary_readSkeletonDataFile(binary, skeletonPath);
+        if (!skeletonData) {
+            printf("Failed to load skeleton data from binary file: %s\n", binary->error);
+            SkeletonBinary_dispose(binary);
+            file.close();
+            Atlas_dispose(atlas);
+            return 6;
+        }
+        SkeletonBinary_dispose(binary);
+    }
+
+    file.close();
 
     SkeletonDrawable* drawable = new SkeletonDrawable(skeletonData);
     drawable->timeScale = 1.0f;
@@ -172,7 +230,7 @@ int main(int argc, char** argv) {
     }
     if (points.empty()) {
         printf("No non-transparent pixels found!\n");
-        return 4;
+        return 7;
     }
 
     // 5. 计算凸包包围盒
@@ -262,9 +320,9 @@ int main(int argc, char** argv) {
     // }
 
     // 保存为PNG
-    if (!finalTexture.getTexture().copyToImage().saveToFile(path)) {
+    if (!finalTexture.getTexture().copyToImage().saveToFile(outputPath)) {
         printf("Failed to save image\n");
-        return 5;
+        return 8;
     }
     else {
         printf("Tex: (%d, %d)\n", finalHullWidth, finalHullHeight);
@@ -274,7 +332,6 @@ int main(int argc, char** argv) {
     delete drawable;
     SkeletonData_dispose(skeletonData);
     Atlas_dispose(atlas);
-    SkeletonBinary_dispose(binary);
 
     return 0;
 }
