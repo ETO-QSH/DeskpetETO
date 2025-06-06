@@ -27,7 +27,7 @@ int main() {
 
     drawable.skeleton->setPosition(400, 500);
     drawable.skeleton->updateWorldTransform();
-    drawable.state->setAnimation(0, "Relax", true);
+    drawable.state->setAnimation(0, "Special", true);
 
     sf::Clock deltaClock;
     while (window.isOpen()) {

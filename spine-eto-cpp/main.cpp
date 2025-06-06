@@ -1,8 +1,8 @@
 #include <spine/spine-sfml.h>
 #include <SFML/Graphics.hpp>
 
-#include "spine_win_utils.h"
-#include "mouse_events.h"
+#include "spine-eto/spine_win_utils.h"
+#include "spine-eto/mouse_events.h"
 
 using namespace spine;
 
