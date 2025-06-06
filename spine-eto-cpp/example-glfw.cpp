@@ -684,8 +684,8 @@ int main() {
         "data/official/spineboy-pro.skel"
     );
 
-    // "data/amy/build_char_1037_amiya3_sale_13.atlas"
-    // "data/amy/build_char_1037_amiya3_sale_13.skel"
+    // "data/amiya/build_char_1037_amiya3_sale_13.atlas"
+    // "data/amiya/build_char_1037_amiya3_sale_13.skel"
 
     cout << CONSOLE_BRIGHT_MAGENTA << "Animation Durations:" << CONSOLE_RESET << endl;
     for(const auto& anim : info.animationsWithDuration) {
