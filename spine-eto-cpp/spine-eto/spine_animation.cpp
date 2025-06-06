@@ -7,6 +7,7 @@
 #include <spine/AnimationStateData.h>
 
 #include <iostream>
+#include <fstream>
 
 #include "spine_animation.h"
 #include "console_colors.h"
@@ -15,7 +16,6 @@ using namespace spine;
 
 SpineAnimation::SpineAnimation(int width, int height)
     : windowWidth(width), windowHeight(height), defaultMixTime(0.2f) {
-    // 可扩展GLFW光标等
 }
 
 // --- 加载动画文件 ---
@@ -29,7 +29,7 @@ SpineLoadInfo SpineAnimation::loadFromJson(const std::string& atlasFile, const s
 // --- 统一加载实现 ---
 SpineLoadInfo SpineAnimation::loadImpl(const std::string& atlasPath, const std::string& skeletonPath, bool isJson) {
     SpineLoadInfo info;
-    info.atlas = std::make_shared<spine::Atlas>(atlasPath.c_str(), new SFMLTextureLoader());
+    info.atlas = std::make_shared<Atlas>(atlasPath.c_str(), new SFMLTextureLoader());
     if (info.atlas->getPages().size() == 0) {
         std::cout << CONSOLE_BRIGHT_RED << "Atlas load error: " << atlasPath << CONSOLE_RESET << std::endl;
         info.atlas.reset();
@@ -37,7 +37,35 @@ SpineLoadInfo SpineAnimation::loadImpl(const std::string& atlasPath, const std::
     }
     std::cout << CONSOLE_BRIGHT_GREEN << "Atlas load down!" << CONSOLE_RESET << std::endl;
 
-    if (isJson) {
+    // 检查骨架文件类型
+    std::ifstream file(skeletonPath, std::ios::binary);
+    if (!file) {
+        std::cout << "Failed to open skeleton file: " << skeletonPath << std::endl;
+        info.atlas.reset();
+        return info;
+    }
+    std::vector<char> header(10);
+    file.read(header.data(), 10);
+    if (file.gcount() < 10) {
+        std::cout << "Skeleton file is too short: " << skeletonPath << std::endl;
+        file.close();
+        info.atlas.reset();
+        return info;
+    }
+    // 检查是否是JSON文件
+    bool fileIsJson = false;
+    if (file.gcount() >= 10) {
+        std::string jsonSignature(header.data() + 2, 8); // 第3到10个字节
+        if (jsonSignature == "skeleton") {
+            fileIsJson = true;
+        }
+    }
+    file.close();
+
+    // 优先以参数isJson为准，否则用文件头判断
+    bool useJson = isJson || fileIsJson;
+
+    if (useJson) {
         SkeletonJson json(info.atlas.get());
         json.setScale(1.0f);
         info.skeletonData.reset(json.readSkeletonDataFile(skeletonPath.c_str()));

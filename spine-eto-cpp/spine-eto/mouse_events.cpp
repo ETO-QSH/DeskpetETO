@@ -4,6 +4,10 @@
 #include "mouse_events.h"
 #include "console_colors.h"
 #include "spine_animation.h"
+#include "window_physics.h"
+
+// 使用外部全局物理状态
+extern WindowPhysicsState g_windowPhysicsState;
 
 MouseEventManager::MouseEventManager() = default;
 
@@ -36,6 +40,33 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
     static constexpr int doubleClickPixel = 4;
 
     extern SpineAnimation* animSystem; // 声明外部变量
+
+    // 拖动限制相关
+    static WindowWorkArea workArea = {};
+    static bool workAreaInitialized = false;
+    if (!workAreaInitialized) {
+        RECT rc;
+        SystemParametersInfo(SPI_GETWORKAREA, 0, &rc, 0);
+        workArea.minX = rc.left;
+        workArea.minY = rc.top;
+        workArea.maxX = static_cast<int>(rc.right - window.getSize().x);
+        workArea.maxY = static_cast<int>(rc.bottom - window.getSize().y);
+        workArea.width = static_cast<int>(window.getSize().x);
+        workArea.height = static_cast<int>(window.getSize().y);
+        workAreaInitialized = true;
+    }
+
+    // 用全局物理状态
+    WindowPhysicsState& physicsState = g_windowPhysicsState;
+
+    // 用于计算最后minInterval秒的平均速度
+    struct WindowMoveSample {
+        double time;
+        int x, y;
+    };
+    static std::deque<WindowMoveSample> moveHistory;
+
+    static sf::Clock windowMoveClock;
 
     if (event.type == sf::Event::MouseButtonPressed) {
         if (event.mouseButton.button == sf::Mouse::Left) {
@@ -73,6 +104,22 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
 
             printf(CONSOLE_BRIGHT_CYAN "[INTERACT] Left Pressed @ (%d, %d)" CONSOLE_RESET "\n", pos.x, pos.y);
             setHandCursorWin(true); // 按下时抓手
+
+            // 拖动开始时，物理状态同步
+            physicsState.isDragging = true;
+            // 拖动时速度清零，位置同步
+            RECT rc;
+            GetWindowRect(hwnd, &rc);
+            physicsState.lastX = static_cast<float>(rc.left);
+            physicsState.lastY = static_cast<float>(rc.top);
+            physicsState.vx = 0.0f;
+            physicsState.vy = 0.0f;
+
+            // 拖动速度采样历史
+            moveHistory.clear();
+            // 显式类型转换，避免narrowing conversion
+            moveHistory.push_back(WindowMoveSample{0.0, static_cast<int>(rc.left), static_cast<int>(rc.top)});
+            windowMoveClock.restart();
         } else if (event.mouseButton.button == sf::Mouse::Right) {
             sf::Vector2i pos = sf::Mouse::getPosition(window);
             printf(CONSOLE_BRIGHT_CYAN "[INTERACT] Right Pressed @ (%d, %d)" CONSOLE_RESET "\n", pos.x, pos.y);
@@ -86,33 +133,74 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
             dragState.dragging = false;
             sf::Vector2i pos = sf::Mouse::getPosition(window);
             printf(CONSOLE_BRIGHT_CYAN "[INTERACT] Left Released @ (%d, %d)" CONSOLE_RESET "\n", pos.x, pos.y);
-            // 输出末速度
-            float totalTime = accumulatedTime + velocityClock.getElapsedTime().asSeconds();
-            sf::Vector2f totalDelta = accumulatedDelta;
-            sf::Vector2i lastPos = dragState.currentPos;
-            sf::Vector2i nowPos = sf::Mouse::getPosition(window);
-            totalDelta.x += static_cast<float>(nowPos.x - lastPos.x);
-            totalDelta.y += static_cast<float>(nowPos.y - lastPos.y);
-            if (totalTime > 0.0001f) {
-                sf::Vector2f finalVelocity = totalDelta / totalTime;
-                printf(CONSOLE_BRIGHT_BLUE "[STATE] Move To (%d, %d)" CONSOLE_RESET "\n", nowPos.x, nowPos.y);
-                printf(CONSOLE_BRIGHT_YELLOW "[STATE] Velocity (%.2f, %.2f) px/s" CONSOLE_RESET "\n", finalVelocity.x, finalVelocity.y);
+
+            HWND hwnd = window.getSystemHandle();
+            RECT rc;
+            GetWindowRect(hwnd, &rc);
+            double now = windowMoveClock.getElapsedTime().asSeconds();
+
+            // 维护历史，插入当前
+            moveHistory.push_back(WindowMoveSample{now, static_cast<int>(rc.left), static_cast<int>(rc.top)});
+            // 移除minInterval前的点
+            while (!moveHistory.empty() && now - moveHistory.front().time > minInterval) {
+                moveHistory.pop_front();
             }
+
+            float velocityX = 0.0f, velocityY = 0.0f;
+            if (moveHistory.size() >= 2) {
+                auto& first = moveHistory.front();
+                auto& last = moveHistory.back();
+                double dt = last.time - first.time;
+                if (dt > 0.0001) {
+                    velocityX = static_cast<float>(last.x - first.x) / static_cast<float>(dt);
+                    velocityY = static_cast<float>(last.y - first.y) / static_cast<float>(dt);
+                }
+            }
+            printf(CONSOLE_BRIGHT_BLUE "[TOTAL] Move To (%d, %d)" CONSOLE_RESET "\n", pos.x, pos.y);
+            printf(CONSOLE_BRIGHT_YELLOW "[TOTAL] Velocity (%.2f, %.2f) px/s" CONSOLE_RESET "\n", velocityX, velocityY);
+
+            physicsState.vx = velocityX;
+            physicsState.vy = velocityY;
+            physicsState.isDragging = false;
+
             setHandCursorWin(false); // 松开时恢复手型
             accumulatedDelta = sf::Vector2f(0.f, 0.f);
             accumulatedTime = 0.f;
+            moveHistory.clear();
         } else if (event.mouseButton.button == sf::Mouse::Right) {
             sf::Vector2i pos = sf::Mouse::getPosition(window);
             printf(CONSOLE_BRIGHT_CYAN "[INTERACT] Right Released @ (%d, %d)" CONSOLE_RESET "\n", pos.x, pos.y);
         }
     }
     if (event.type == sf::Event::MouseMoved) {
-        // 判断鼠标是否在窗口区域
         HWND hwnd = window.getSystemHandle();
         POINT pt;
         GetCursorPos(&pt);
         RECT rc;
         GetWindowRect(hwnd, &rc);
+
+        // 拖动限制：鼠标超出工作区时不移动窗口
+        if (dragState.dragging) {
+            int newLeft = pt.x - (dragState.startPos.x);
+            int newTop = pt.y - (dragState.startPos.y);
+            // 限制鼠标拖动范围
+            newLeft = std::min(std::max(newLeft, workArea.minX), workArea.maxX);
+            newTop = std::min(std::max(newTop, workArea.minY), workArea.maxY);
+            SetWindowPos(hwnd, nullptr, newLeft, newTop, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+
+            // 拖动时物理状态同步
+            physicsState.lastX = static_cast<float>(newLeft);
+            physicsState.lastY = static_cast<float>(newTop);
+
+            // 记录窗口移动用于速度计算
+            double now = windowMoveClock.getElapsedTime().asSeconds();
+            moveHistory.push_back(WindowMoveSample{now, newLeft, newTop});
+            // 保留minInterval内的历史
+            while (!moveHistory.empty() && now - moveHistory.front().time > minInterval) {
+                moveHistory.pop_front();
+            }
+        }
+
         if (PtInRect(&rc, pt)) {
             if (dragState.dragging)
                 setHandCursorWin(true);
@@ -144,13 +232,7 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
             }
             velocityClock.restart();
         }
-        // 拖动窗口
-        HWND hwnd = window.getSystemHandle();
-        POINT pt;
-        GetCursorPos(&pt);
-        int newLeft = pt.x - (dragState.startPos.x);
-        int newTop = pt.y - (dragState.startPos.y);
-        SetWindowPos(hwnd, nullptr, newLeft, newTop, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+        // 拖动窗口逻辑已在 MouseMoved 上面处理
     }
 }
 

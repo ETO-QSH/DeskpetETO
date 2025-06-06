@@ -59,9 +59,6 @@ public:
     // 设置默认动画（队列空且无临时动画时循环播放）
     void setDefaultAnimation(const std::string& anim);
 
-    // 显示骨架等调试信息
-    void setDebugVisible(bool visible);
-
     // 每帧更新与绘制
     void update(float dt);
     void draw(sf::RenderTarget& target);
@@ -71,6 +68,9 @@ public:
 
     // 添加静态事件回调声明
     static void staticSpineEventCallback(spine::AnimationState*, spine::EventType, spine::TrackEntry*, spine::Event*);
+
+    // 新增：获取当前缩放
+    float getScale() const { return scale; }
 
 private:
     int windowWidth, windowHeight;

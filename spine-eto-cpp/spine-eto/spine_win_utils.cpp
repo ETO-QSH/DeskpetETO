@@ -143,7 +143,7 @@ SkeletonDrawable* drawable = nullptr;
 SpineAnimation* animSystem = nullptr;
 
 void initWindowAndShader() {
-    window.create(sf::VideoMode(800, 600), "Spine SFML", sf::Style::None);
+    window.create(sf::VideoMode(720, 540), "Spine SFML", sf::Style::None);
     window.setFramerateLimit(60);
     hwnd = window.getSystemHandle();
 
@@ -152,7 +152,7 @@ void initWindowAndShader() {
     exStyle &= ~WS_EX_TRANSPARENT;
     SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
 
-    renderTexture.create(800, 600);
+    renderTexture.create(720, 540);
 
     // 获取屏幕工作区（排除任务栏），并打印
     RECT workArea;
@@ -160,7 +160,7 @@ void initWindowAndShader() {
 
     int screenW = GetSystemMetrics(SM_CXSCREEN);
     int screenH = GetSystemMetrics(SM_CYSCREEN);
-    int winW = 800, winH = 600;
+    int winW = 720, winH = 540;
     int minX = workArea.left;
     int minY = workArea.top;
     int maxX = workArea.right - winW;
@@ -201,7 +201,7 @@ void initWindowAndShader() {
 
 void initSpineModel() {
     // 创建动画系统
-    static SpineAnimation staticAnimSystem(800, 600);
+    static SpineAnimation staticAnimSystem(720, 540);
     animSystem = &staticAnimSystem;
 
     // 加载资源
@@ -214,17 +214,17 @@ void initSpineModel() {
     if (info.valid) {
         animSystem->apply(info);
         animSystem->setGlobalMixTime(0.2f);
-        animSystem->setDefaultAnimation("Relax");
-        animSystem->setScale(1.0f);
+        animSystem->setDefaultAnimation("Move");
+        animSystem->setScale(0.5f);
         animSystem->setFlip(false, false);
-        animSystem->setPosition(300.0f, 0.0f);
+        animSystem->setPosition(350.0f, 0.0f);
         animSystem->playTemp("Move");
 
         animSystem->enqueueAnimation("Interact");
         animSystem->enqueueAnimation("Special");
-        animSystem->enqueueAnimation("Move");
         animSystem->enqueueAnimation("Relax");
         animSystem->enqueueAnimation("Move");
+        animSystem->enqueueAnimation("Relax");
     }
 
     // 兼容原有全局 drawable 指针
