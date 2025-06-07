@@ -1,3 +1,4 @@
 *.h linguist-language=c
 *.py linguist-language=python
 *.cpp linguist-language=c++
+CMakeLists.txt linguist-language=c
