@@ -359,7 +359,7 @@ public:
                 float ay = y + itemHeight / 2.f;
                 arrow.setPoint(0, { ax, ay - 6.f });
                 arrow.setPoint(1, { ax, ay + 6.f });
-                arrow.setPoint(2, { ax + 8.f, ay });
+                arrow.setPoint(2, { ax + 10.f, ay });
                 arrow.setFillColor(sf::Color(127, 127, 127));
                 target.draw(arrow);
             }
@@ -369,9 +369,9 @@ public:
                 circle.setOrigin(5.f, 5.f);
                 circle.setPosition(m_position.x + width - padding - 6.f, y + itemHeight / 2.f);
                 if (entry.toggleState == 0)
-                    circle.setFillColor(sf::Color(223, 63, 63)); // 红色
+                    circle.setFillColor(sf::Color(223, 95, 95)); // 红色
                 else
-                    circle.setFillColor(sf::Color(63, 223, 63)); // 绿色
+                    circle.setFillColor(sf::Color(95, 223, 95)); // 绿色
                 target.draw(circle);
             }
             // 三态切换类型菜单项右侧画圆
@@ -382,7 +382,7 @@ public:
                 if (!entry.triColors.empty())
                     circle.setFillColor(entry.triColors[entry.toggleState % entry.triColors.size()]);
                 else
-                    circle.setFillColor(sf::Color::Yellow);
+                    circle.setFillColor(sf::Color::Transparent);
                 target.draw(circle);
             }
             y += itemHeight;
@@ -540,7 +540,7 @@ int main() {
 
     model.addSeparator();
     model.getEntries().push_back(MenuEntry::Toggle("窗口置顶", "./source/icon/top.png",
-        0, [](const int& state){ std::puts(state ? "置顶:开" : "置顶:关"); }));
+        1, [](const int& state){ std::puts(state ? "置顶:开" : "置顶:关"); }));
     model.getEntries().push_back(MenuEntry::Toggle("位置锁定", "./source/icon/stick.png",
         0, [](const int& state){ std::puts(state ? "锁定:开" : "锁定:关"); }));
     model.getEntries().push_back(MenuEntry::ToggleTri("状态切换", "./source/icon/break.png",
