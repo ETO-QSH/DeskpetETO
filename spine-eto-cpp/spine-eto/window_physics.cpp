@@ -27,7 +27,7 @@ struct WindowWorkArea {
 constexpr float WALK_SPEED = 100.0f; // px/s
 
 // 新增步行状态
-static bool walkEnabled = true;
+static bool walkEnabled = false;
 static int walkDirection = 1; // 1=右，-1=左
 
 void setWalkEnabled(bool enabled) {

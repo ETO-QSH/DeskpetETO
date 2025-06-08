@@ -3,11 +3,16 @@
 
 #include "mouse_events.h"
 #include "console_colors.h"
-#include "spine_animation.h"
 #include "window_physics.h"
+#include "spine_animation.h"
+#include "right_click_menu.h"
 
 // 使用外部全局物理状态
 extern WindowPhysicsState g_windowPhysicsState;
+
+// 声明全局菜单和主窗口指针
+extern MenuWidgetWithHide* g_contextMenu;
+extern sf::RenderWindow* g_mainWindow;
 
 MouseEventManager::MouseEventManager() = default;
 
@@ -125,6 +130,10 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
             printf(CONSOLE_BRIGHT_CYAN "[INTERACT] Right Pressed @ (%d, %d)" CONSOLE_RESET "\n", pos.x, pos.y);
             if (animSystem) {
                 animSystem->setFlip(true, false);
+            }
+            // 弹出右键菜单
+            if (g_contextMenu && g_mainWindow) {
+                popupMenu(g_mainWindow, sf::Vector2f(static_cast<float>(pos.x), static_cast<float>(pos.y)), g_contextMenu);
             }
         }
     }
