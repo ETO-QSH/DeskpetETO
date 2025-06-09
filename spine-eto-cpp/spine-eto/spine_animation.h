@@ -1,11 +1,13 @@
 #pragma once
+
 #include <spine/spine-sfml.h>
 #include <SFML/Graphics.hpp>
+
+#include <map>
 #include <memory>
+#include <queue>
 #include <string>
 #include <vector>
-#include <queue>
-#include <map>
 
 struct SpineLoadInfo {
     bool valid = false;
@@ -88,6 +90,4 @@ private:
     bool playingTemp = false;
     std::string tempAnim;
     bool tempLoop = false;
-
-    void playNextInQueue();
 };

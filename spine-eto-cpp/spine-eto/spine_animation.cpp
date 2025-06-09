@@ -1,18 +1,22 @@
 #include <spine/spine-sfml.h>
 
 #include <spine/Atlas.h>
-#include <spine/SkeletonJson.h>
-#include <spine/SkeletonBinary.h>
 #include <spine/AnimationState.h>
 #include <spine/AnimationStateData.h>
+#include <spine/SkeletonBinary.h>
+#include <spine/SkeletonJson.h>
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
-#include "spine_animation.h"
+#include "animation_queue_utils.h"
 #include "console_colors.h"
+#include "spine_animation.h"
+#include "window_physics.h"
 
 using namespace spine;
+
+constexpr int ACTIVE_LEVEL = 2;
 
 SpineAnimation::SpineAnimation(int width, int height)
     : windowWidth(width), windowHeight(height), defaultMixTime(0.2f) {
@@ -189,6 +193,8 @@ void SpineAnimation::playTemp(const std::string& name, bool loop, float mixDurat
             entry->setMixDuration(mixDuration);
         }
         playingTemp = true;
+        tempLoop = loop; // 记录loop参数
+        tempAnim = name;
     }
 }
 
@@ -225,15 +231,59 @@ void SpineAnimation::staticSpineEventCallback(AnimationState* state, EventType t
             break;
         case EventType_Complete:
             std::cout << CONSOLE_BRIGHT_BLACK << "[COMPLETE] Animation: " << animationName << CONSOLE_RESET << std::endl;
+            // 优先处理临时动画循环
+            if (self->playingTemp) {
+                if (self->tempLoop) {
+                    auto* newEntry = self->drawable->state->setAnimation(0, self->tempAnim.c_str(), false);
+                    if (newEntry) {
+                        newEntry->setMixDuration(self->defaultMixTime);
+                    }
+                    return;
+                } else {
+                    self->playingTemp = false;
+                }
+            }
+            // 队列补充机制
+            if (self->animQueue.size() <= 32) {
+                std::queue<std::pair<std::string, float>> qCopy = self->animQueue;
+                std::vector<std::string> prefix;
+                while (!qCopy.empty()) {
+                    prefix.push_back(qCopy.front().first);
+                    qCopy.pop();
+                }
+                if (prefix.size() > 32) prefix.resize(32);
+                std::map<std::string, float> animDur;
+                if (self->drawable && self->drawable->skeleton) {
+                    auto* skelData = self->drawable->skeleton->getData();
+                    for (int i = 0; i < skelData->getAnimations().size(); ++i) {
+                        auto* anim = skelData->getAnimations()[i];
+                        animDur[anim->getName().buffer()] = anim->getDuration();
+                    }
+                }
+                ActiveParams params = getActiveParams(ACTIVE_LEVEL);
+                auto newQueue = generateRandomAnimQueueWithPrefix(
+                    prefix, params.relaxToMoveRatio, params.specialRatio, 64, animDur);
+                for (const auto& anim : newQueue) {
+                    self->animQueue.push(std::make_pair(anim, -1.f));
+                }
+            }
             // 动画完成时：优先弹队列，否则播放一次默认动画
-            if (!self->animQueue.empty()) {
+            while (!self->animQueue.empty()) {
                 auto next = self->animQueue.front();
                 self->animQueue.pop();
-                auto* newEntry = self->drawable->state->setAnimation(0, next.first.c_str(), false);
-                if (newEntry && next.second >= 0)
-                    newEntry->setMixDuration(next.second);
-            } else if (!self->defaultAnim.empty()) {
-                self->drawable->state->setAnimation(0, self->defaultAnim.c_str(), false); // 只播放一次
+                if (next.first == "Turn") {
+                    self->setFlip(true, false);
+                    setWalkDirection();
+                } else {
+                    auto* newEntry = self->drawable->state->setAnimation(0, next.first.c_str(), false);
+                    if (newEntry && next.second >= 0)
+                        newEntry->setMixDuration(next.second);
+                    return;
+                }
+            }
+            // 队列空，循环播放默认动画
+            if (!self->defaultAnim.empty()) {
+                self->drawable->state->setAnimation(0, self->defaultAnim.c_str(), true);
             }
             break;
         default:
@@ -251,30 +301,11 @@ void SpineAnimation::update(float dt) {
     if (!drawable) return;
     drawable->update(dt);
 
-    auto* entry = drawable->state->getCurrent(0);
-
     // 优先处理临时动画
+    auto* entry = drawable->state->getCurrent(0);
     if (playingTemp) {
         if (entry && !entry->getLoop() && entry->getTrackTime() >= entry->getAnimationEnd()) {
             playingTemp = false;
-        } else if (entry) {
-            return;
-        }
-    }
-
-    // 队列动画：如果当前动画结束或没有动画，弹出队列
-    if (!entry || (!entry->getLoop() && entry->getTrackTime() >= entry->getAnimationEnd())) {
-        if (!animQueue.empty()) {
-            auto next = animQueue.front();
-            animQueue.pop();
-            auto* newEntry = drawable->state->setAnimation(0, next.first.c_str(), false);
-            if (newEntry && next.second >= 0)
-                newEntry->setMixDuration(next.second);
-            return;
-        }
-        // 队列空，循环播放默认动画
-        if (!defaultAnim.empty()) {
-            drawable->state->setAnimation(0, defaultAnim.c_str(), true);
         }
     }
 }
@@ -282,14 +313,4 @@ void SpineAnimation::update(float dt) {
 void SpineAnimation::draw(sf::RenderTarget& target) {
     if (drawable)
         target.draw(*drawable);
-}
-
-void SpineAnimation::playNextInQueue() {
-    if (!animQueue.empty()) {
-        auto next = animQueue.front();
-        animQueue.pop();
-        drawable->state->setAnimation(0, next.first.c_str(), false);
-    } else if (!defaultAnim.empty()) {
-        drawable->state->setAnimation(0, defaultAnim.c_str(), true);
-    }
 }

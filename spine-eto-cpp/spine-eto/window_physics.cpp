@@ -1,6 +1,6 @@
-#include <Windows.h>
 #include <algorithm>
 #include <cmath>
+#include <Windows.h>
 
 #include "spine_animation.h"
 
@@ -27,15 +27,16 @@ struct WindowWorkArea {
 constexpr float WALK_SPEED = 100.0f; // px/s
 
 // 新增步行状态
-static bool walkEnabled = false;
+static bool walkEnabled = true;
 static int walkDirection = 1; // 1=右，-1=左
 
 void setWalkEnabled(bool enabled) {
     walkEnabled = enabled;
 }
 
-void setWalkDirection(int dir) {
-    walkDirection = (dir >= 0) ? 1 : -1;
+// 方向翻转接口实现
+void setWalkDirection() {
+    walkDirection = -walkDirection;
 }
 
 bool isWalkEnabled() {
@@ -44,6 +45,15 @@ bool isWalkEnabled() {
 
 int getWalkDirection() {
     return walkDirection;
+}
+
+// 新增：重力开关
+static bool gravityEnabled = true;
+void setGravityEnabled(bool enabled) {
+    gravityEnabled = enabled;
+}
+bool isGravityEnabled() {
+    return gravityEnabled;
 }
 
 // 外部声明，需加上类型声明头文件
@@ -64,12 +74,16 @@ void updateWindowPhysics(HWND hwnd, WindowPhysicsState& state, const WindowWorkA
     auto x = static_cast<float>(rc.left);
     auto y = static_cast<float>(rc.top);
 
-    // 应用重力
-    state.vy += GRAVITY * dt;
+    // 应用重力（可开关）
+    if (isGravityEnabled()) {
+        state.vy += GRAVITY * dt;
+    }
 
-    // 步行逻辑：只有接触底边且不在拖动状态且开启步行时
+    // 步行逻辑：只有接触底边且不在拖动状态且开启步行且动画为Move时
     float scale = getCurrentScale();
-    if (walkEnabled && std::abs(y - static_cast<float>(area.maxY)) < 0.5f) {
+    extern SpineAnimation* animSystem;
+    bool isMoveAnim = animSystem && animSystem->getCurrentAnimation() == "Move";
+    if (walkEnabled && isMoveAnim && std::abs(y - static_cast<float>(area.maxY)) < 0.5f) {
         state.vx = WALK_SPEED * static_cast<float>(walkDirection) * scale;
     }
 
@@ -122,13 +136,4 @@ void updateWindowPhysics(HWND hwnd, WindowPhysicsState& state, const WindowWorkA
 
     state.lastX = x;
     state.lastY = y;
-}
-
-// 拖动限制：窗口始终在工作区内
-void clampWindowToWorkArea(HWND hwnd, const WindowWorkArea& area) {
-    RECT rc;
-    GetWindowRect(hwnd, &rc);
-    int x = std::min(std::max(static_cast<int>(rc.left), area.minX), area.maxX);
-    int y = std::min(std::max(static_cast<int>(rc.top), area.minY), area.maxY);
-    SetWindowPos(hwnd, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }

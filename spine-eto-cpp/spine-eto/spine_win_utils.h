@@ -1,15 +1,21 @@
 #pragma once
+
 #include <SFML/Graphics.hpp>
-#include <spine/spine-sfml.h>
-#include <Windows.h>
+#include <windows.h>
+
+// 向前声明，避免头文件循环依赖和不必要的包含
+namespace spine {
+    class SkeletonDrawable;
+}
+
+// 全局变量声明
+extern HWND hwnd;
+extern sf::RenderWindow window;
+extern sf::RenderTexture renderTexture;
+extern spine::SkeletonDrawable* drawable;
 
 HRGN BitmapToRgnAlpha(HBITMAP hBmp, BYTE alphaThreshold = 16);
 void setClickThrough(HWND hwnd, const sf::Image& image);
 
-void initWindowAndShader();
-void initSpineModel();
-
-extern sf::RenderWindow window;
-extern HWND hwnd;
-extern sf::RenderTexture renderTexture;
-extern spine::SkeletonDrawable* drawable;
+void initWindowAndShader(int width, int height, int offset);
+void initSpineModel(int width, int height, int yOffset);

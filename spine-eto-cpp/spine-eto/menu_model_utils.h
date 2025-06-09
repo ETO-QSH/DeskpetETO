@@ -1,7 +1,8 @@
 #pragma once
+
+#include <functional>
 #include <string>
 #include <vector>
-#include <functional>
 
 #include "right_click_menu.h"
 

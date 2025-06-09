@@ -1,9 +1,10 @@
 #pragma once
+
 #include <SFML/Graphics.hpp>
+
 #include <functional>
-#include <vector>
 #include <string>
-#include <memory>
+#include <vector>
 
 // 菜单项类型
 enum class MenuEntryType { Action, Separator, SubMenu, Toggle, ToggleTri };

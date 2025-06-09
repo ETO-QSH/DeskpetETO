@@ -1,4 +1,5 @@
 #pragma once
+
 #include <Windows.h>
 
 // 物理状态
@@ -19,5 +20,9 @@ struct WindowWorkArea {
 // 物理更新
 void updateWindowPhysics(HWND hwnd, WindowPhysicsState& state, const WindowWorkArea& area, float dt);
 
-// 拖动限制
-void clampWindowToWorkArea(HWND hwnd, const WindowWorkArea& area);
+// 重力开关
+void setGravityEnabled(bool enabled);
+bool isGravityEnabled();
+
+// 方向翻转接口
+void setWalkDirection();

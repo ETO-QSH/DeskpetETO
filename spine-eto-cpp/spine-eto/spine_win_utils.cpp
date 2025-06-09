@@ -1,12 +1,16 @@
 #include <spine/spine-sfml.h>
-#include <windows.h>
-#include <iostream>
 
-#include "spine_win_utils.h"
-#include "spine_animation.h"
+#include <iostream>
+#include <windows.h>
+
 #include "console_colors.h"
+#include "spine_animation.h"
+#include "spine_win_utils.h"
+#include "animation_queue_utils.h"
 
 using namespace spine;
+
+constexpr int ACTIVE_LEVEL = 2;
 
 HRGN BitmapToRgnAlpha(HBITMAP hBmp, BYTE alphaThreshold) {
     HRGN hRgn = nullptr;
@@ -135,6 +139,11 @@ void handleWindowCursor(HWND hwnd, bool isPressed) {
     }
 }
 
+// 新增：显示主窗口
+void showMainWindow() {
+    ShowWindow(hwnd, SW_SHOW);
+}
+
 // 全局变量定义
 HWND hwnd;
 sf::RenderWindow window;
@@ -142,8 +151,8 @@ sf::RenderTexture renderTexture;
 SkeletonDrawable* drawable = nullptr;
 SpineAnimation* animSystem = nullptr;
 
-void initWindowAndShader() {
-    window.create(sf::VideoMode(720, 540), "Spine SFML", sf::Style::None);
+void initWindowAndShader(int width, int height, int offset) {
+    window.create(sf::VideoMode(width, height), "Spine SFML", sf::Style::None);
     window.setFramerateLimit(60);
     hwnd = window.getSystemHandle();
 
@@ -152,7 +161,9 @@ void initWindowAndShader() {
     exStyle &= ~WS_EX_TRANSPARENT;
     SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
 
-    renderTexture.create(720, 540);
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
+    renderTexture.create(width, height);
 
     // 获取屏幕工作区（排除任务栏），并打印
     RECT workArea;
@@ -160,11 +171,10 @@ void initWindowAndShader() {
 
     int screenW = GetSystemMetrics(SM_CXSCREEN);
     int screenH = GetSystemMetrics(SM_CYSCREEN);
-    int winW = 720, winH = 540;
     int minX = workArea.left;
     int minY = workArea.top;
-    int maxX = workArea.right - winW;
-    int maxY = workArea.bottom - winH;
+    int maxX = workArea.right - width;
+    int maxY = workArea.bottom - height + offset;
 
     // 检查任务栏位置
     APPBARDATA abd = { sizeof(APPBARDATA) };
@@ -199,9 +209,8 @@ void initWindowAndShader() {
     std::cout << CONSOLE_RESET << std::endl;
 }
 
-void initSpineModel() {
-    // 创建动画系统
-    static SpineAnimation staticAnimSystem(720, 540);
+void initSpineModel(int width, int height, int yOffset) {
+    static SpineAnimation staticAnimSystem(width, height);
     animSystem = &staticAnimSystem;
 
     // 加载资源
@@ -210,23 +219,35 @@ void initSpineModel() {
         "./models/lisa/build_char_358_lisa_lxh#1.skel"
     );
 
-    // animSystem 操作区
     if (info.valid) {
         animSystem->apply(info);
         animSystem->setGlobalMixTime(0.2f);
         animSystem->setDefaultAnimation("Move");
         animSystem->setScale(0.5f);
         animSystem->setFlip(false, false);
-        animSystem->setPosition(350.0f, 0.0f);
+        animSystem->setPosition(width / 2.0f, yOffset);
         animSystem->playTemp("Move");
 
-        animSystem->enqueueAnimation("Interact");
-        animSystem->enqueueAnimation("Special");
-        animSystem->enqueueAnimation("Relax");
-        animSystem->enqueueAnimation("Move");
-        animSystem->enqueueAnimation("Relax");
+        // 自动队列生成
+        ActiveParams params = getActiveParams(ACTIVE_LEVEL);
+        std::vector<std::string> animQueue = generateRandomAnimQueue(
+            params.relaxToMoveRatio, params.specialRatio, 128, info.animationsWithDuration);
+
+        // 取中间33-96（64个）插入队列（包含Turn）
+        int start = 33, end = 97;
+        if (animQueue.size() < static_cast<size_t>(end)) end = static_cast<int>(animQueue.size());
+        std::vector initialQueue(animQueue.begin() + start, animQueue.begin() + end);
+        for (const auto& anim : initialQueue) {
+            animSystem->enqueueAnimation(anim);
+        }
+        // 继承Turn计数
+        int turnMiss = 0;
+        for (int i = end - 1; i >= start; --i) {
+            if (animQueue[i] == "Turn") break;
+            ++turnMiss;
+        }
+        setTurnMissCount(turnMiss);
     }
 
-    // 兼容原有全局 drawable 指针
     drawable = animSystem->getDrawable();
 }

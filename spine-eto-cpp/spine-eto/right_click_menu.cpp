@@ -1,11 +1,11 @@
-#include <Windows.h>
-#include <thread>
 #include <cmath>
 #include <mutex>
+#include <thread>
+#include <Windows.h>
 
 #include "console_colors.h"
-#include "spine_win_utils.h"
 #include "right_click_menu.h"
+#include "spine_win_utils.h"
 
 // 圆角矩形辅助函数
 class RoundedRectangleShape : public sf::Shape {
@@ -449,6 +449,8 @@ struct MenuWidgetWithHide : MenuWidget {
 namespace {
     HWND menuHwnd = nullptr;
     MenuWidgetWithHide* menu = nullptr;
+    std::thread menuThread;
+    std::mutex menuThreadMutex;
 }
 
 // 初始化菜单控件和窗口（只初始化一次，后续复用）
@@ -460,9 +462,32 @@ MenuWidgetWithHide* initMenu(const MenuModel& model, const sf::Font& font, std::
     return menu;
 }
 
-// 菜单线程安全关闭函数（只隐藏菜单，不再关闭窗口/纹理）
+// 修改为线程安全，且避免多线程exit时崩溃
 void safeCloseMenuWindow() {
+    static std::mutex closeMutex;
+    std::lock_guard<std::mutex> lock(closeMutex);
     if (menu) menu->hide();
+}
+
+// 修改为立即销毁菜单窗口和线程
+void forceCloseMenuWindow() {
+    static std::mutex closeMutex;
+    std::lock_guard<std::mutex> lock(closeMutex);
+    // 直接关闭菜单窗口（如果存在）
+    if (menuHwnd) {
+        // 强制关闭窗口
+        PostMessage(menuHwnd, WM_CLOSE, 0, 0);
+        menuHwnd = nullptr;
+    }
+    if (menu) menu->hide();
+}
+
+// 等待菜单线程安全退出
+void waitMenuThreadExit() {
+    std::lock_guard lock(menuThreadMutex);
+    if (menuThread.joinable()) {
+        menuThread.join();
+    }
 }
 
 // 绘制菜单并处理事件（窗口和RenderTexture全部局部）
@@ -556,8 +581,6 @@ void drawMenu(MenuWidget* menuPtr, sf::RenderWindow* parentWindow, const sf::Vec
 
 // 弹出菜单接口
 void popupMenu(sf::RenderWindow* parentWindow, const sf::Vector2f& pos, MenuWidgetWithHide* /*menuPtr*/) {
-    static std::thread menuThread;
-    static std::mutex menuThreadMutex;
     std::lock_guard lock(menuThreadMutex);
 
     // 等待上一个菜单线程完全退出

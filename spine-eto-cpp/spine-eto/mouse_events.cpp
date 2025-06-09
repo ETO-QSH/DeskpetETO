@@ -1,18 +1,19 @@
 #include <cstdio>
 #include <Windows.h>
 
-#include "mouse_events.h"
 #include "console_colors.h"
-#include "window_physics.h"
-#include "spine_animation.h"
+#include "mouse_events.h"
 #include "right_click_menu.h"
+#include "spine_animation.h"
+#include "window_physics.h"
 
-// 使用外部全局物理状态
+// 声明全局物理状态
 extern WindowPhysicsState g_windowPhysicsState;
-
 // 声明全局菜单和主窗口指针
 extern MenuWidgetWithHide* g_contextMenu;
 extern sf::RenderWindow* g_mainWindow;
+// 声明全局工作区
+extern WindowWorkArea g_workArea;
 
 MouseEventManager::MouseEventManager() = default;
 
@@ -46,23 +47,10 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
 
     extern SpineAnimation* animSystem; // 声明外部变量
 
-    // 拖动限制相关
-    static WindowWorkArea workArea = {};
-    static bool workAreaInitialized = false;
-    if (!workAreaInitialized) {
-        RECT rc;
-        SystemParametersInfo(SPI_GETWORKAREA, 0, &rc, 0);
-        workArea.minX = rc.left;
-        workArea.minY = rc.top;
-        workArea.maxX = static_cast<int>(rc.right - window.getSize().x);
-        workArea.maxY = static_cast<int>(rc.bottom - window.getSize().y);
-        workArea.width = static_cast<int>(window.getSize().x);
-        workArea.height = static_cast<int>(window.getSize().y);
-        workAreaInitialized = true;
-    }
-
     // 用全局物理状态
     WindowPhysicsState& physicsState = g_windowPhysicsState;
+    // 用全局工作区
+    const WindowWorkArea& workArea = g_workArea;
 
     // 用于计算最后minInterval秒的平均速度
     struct WindowMoveSample {
@@ -82,7 +70,7 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
                 elapsed < doubleClickThreshold &&
                 std::abs(pos.x - lastClickPos.x) <= doubleClickPixel &&
                 std::abs(pos.y - lastClickPos.y) <= doubleClickPixel) {
-                printf(CONSOLE_BRIGHT_GREEN "[INTERACT] Left Double Click @ (%d, %d)" CONSOLE_RESET "\n", pos.x, pos.y);
+                printf(CONSOLE_BRIGHT_GREEN "[INTERACT] Double Click @ (%d, %d)" CONSOLE_RESET "\n", pos.x, pos.y);
                 if (animSystem) {
                     animSystem->playTemp("Interact");
                 }
@@ -128,9 +116,6 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
         } else if (event.mouseButton.button == sf::Mouse::Right) {
             sf::Vector2i pos = sf::Mouse::getPosition(window);
             printf(CONSOLE_BRIGHT_CYAN "[INTERACT] Right Pressed @ (%d, %d)" CONSOLE_RESET "\n", pos.x, pos.y);
-            if (animSystem) {
-                animSystem->setFlip(true, false);
-            }
             // 弹出右键菜单
             if (g_contextMenu && g_mainWindow) {
                 popupMenu(g_mainWindow, sf::Vector2f(static_cast<float>(pos.x), static_cast<float>(pos.y)), g_contextMenu);
@@ -160,7 +145,7 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
                 auto& first = moveHistory.front();
                 auto& last = moveHistory.back();
                 double dt = last.time - first.time;
-                if (dt > 0.0001) {
+                if (dt > 0.01) {
                     velocityX = static_cast<float>(last.x - first.x) / static_cast<float>(dt);
                     velocityY = static_cast<float>(last.y - first.y) / static_cast<float>(dt);
                 }
@@ -241,7 +226,6 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
             }
             velocityClock.restart();
         }
-        // 拖动窗口逻辑已在 MouseMoved 上面处理
     }
 }
 
