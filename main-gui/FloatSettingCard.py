@@ -80,7 +80,7 @@ class RangeSettingCard2F(SettingCard):
 
     def _update_display(self, value: float):
         """ 更新显示文本 """
-        self.valueLabel.setText(f"{value:.{2 if self.scale >= 10 else 1}f}")
+        self.valueLabel.setText(f"{value:.{2 if self.scale > 10 else 1}f}")
         self.valueLabel.adjustSize()
 
 

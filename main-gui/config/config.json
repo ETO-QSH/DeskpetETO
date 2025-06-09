@@ -9,14 +9,14 @@
     "Personalization": {
         "Folders": "D:/Work Files/PyQt-Fluent-Widgets-exploit/DeskpetETO/output",
         "DpiScale": "Auto",
-        "Page": "DownloadInterface",
+        "Page": "HomeInterface",
         "WareHouse": "仓库"
     },
     "Animation": {
         "Dynamic": 2,
-        "Gravity": 3.0,
-        "ModelSize": 0.0,
-        "Smooth": 0.35,
+        "Gravity": 1.2,
+        "ModelSize": -1.0,
+        "Smooth": 0.25,
         "Velocity": 5
     },
     "Version": {

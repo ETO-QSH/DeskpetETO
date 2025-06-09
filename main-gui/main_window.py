@@ -8,10 +8,11 @@ from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout
 
 from DeskpetETO.CardFrame import CardWindow
 from DeskpetETO.Document import Document
+from DeskpetETO.DownloadSegmented import DownloadSegmented
 from DeskpetETO.JsonMerger import JsonMerger
 from DeskpetETO.MessageBox import CustomMessageBox
 from DeskpetETO.Setting import Setting, cfg
-from DeskpetETO.DownloadSegmented import DownloadSegmented
+from DeskpetETO.StorageGroup import StorageGroup
 
 from qfluentwidgets import (
     NavigationItemPosition, setTheme, Theme, MSFluentWindow, SubtitleLabel,
@@ -35,7 +36,7 @@ class Window(MSFluentWindow):
     def __init__(self):
         super().__init__()
 
-        self.homeInterface = Widget('HomeInterface', self)
+        self.homeInterface = StorageGroup()
         self.cardInterface = CardWindow()
         self.downloadInterface = DownloadSegmented()
 
@@ -154,9 +155,9 @@ class Window(MSFluentWindow):
 
 
 if __name__ == '__main__':
-    # QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-    # QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-    # QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     # enable dpi scale
     if cfg.get(cfg.dpiScale) == "Auto":

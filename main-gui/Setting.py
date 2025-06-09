@@ -34,11 +34,11 @@ class Config(QConfig):
     penetrateClickAll = ConfigItem("Configuration", "Unclick", False, BoolValidator())
     keepWindowTop = ConfigItem("Configuration", "Keeper", True, BoolValidator())
 
-    gravity = RangeConfigItem("Animation", "Gravity", 3.0, RangeValidator2F(0.0, 6.0))
-    smooth = RangeConfigItem("Animation", "Smooth", 0.35, RangeValidator2F(0.0, 0.5))
+    gravity = RangeConfigItem("Animation", "Gravity", 1.0, RangeValidator2F(0.5, 2.5))
+    smooth = RangeConfigItem("Animation", "Smooth", 0.25, RangeValidator2F(0.0, 0.5))
     velocity = RangeConfigItem("Animation", "Velocity", 5, RangeValidator(0, 10))
     dynamic = RangeConfigItem("Animation", "Dynamic", 2, RangeValidator(0, 6))
-    modelSize = RangeConfigItem("Animation", "ModelSize", 0.0, RangeValidator2F(-2.0, 2.0))
+    modelSize = RangeConfigItem("Animation", "ModelSize", -1.0, RangeValidator2F(-2.0, 1.0))
 
     none = {'tag': '0.0.0', 'title': 'None information', 'body': '', 'assets': [{'name': '???', 'size': 0, 'download_url': 'null'}]}
 
@@ -182,7 +182,7 @@ class Setting(ScrollArea):
             FluentIcon.DOWN,
             self.tr('重力加速度'),
             self.tr('设置启用下落时的下落加速度折算时间（s）'),
-            2,
+            10,
             parent=self.animateGroup
         )
 
@@ -259,7 +259,7 @@ class Setting(ScrollArea):
 
         # add setting card group to layout
         self.expandLayout.setSpacing(20)
-        self.expandLayout.setContentsMargins(10, 0, 10, 15)
+        self.expandLayout.setContentsMargins(10, 5, 10, 15)
         self.expandLayout.addWidget(self.personalGroup)
         self.expandLayout.addWidget(self.otherGroup)
         self.expandLayout.addWidget(self.animateGroup)
