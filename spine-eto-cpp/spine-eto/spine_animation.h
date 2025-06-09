@@ -71,10 +71,7 @@ public:
     // 添加静态事件回调声明
     static void staticSpineEventCallback(spine::AnimationState*, spine::EventType, spine::TrackEntry*, spine::Event*);
 
-    // 新增：获取当前缩放
-    float getScale() const { return scale; }
-
-    // 新增：存储当前活跃系数
+    // 存储当前活跃系数
     int activeLevel = 2;
 
 private:

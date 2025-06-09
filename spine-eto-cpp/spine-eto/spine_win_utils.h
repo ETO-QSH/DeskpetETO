@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
+
 #include <windows.h>
 
 // 向前声明，避免头文件循环依赖和不必要的包含

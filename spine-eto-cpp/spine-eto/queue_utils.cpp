@@ -38,7 +38,7 @@ std::vector<std::string> generateRandomAnimQueue(
     std::random_device rd;
     std::mt19937 gen(rd());
 
-    // Turn机制变量
+    // Turn机制变量（抽卡模拟器喵）
     int turnMissCount = g_turnMissCount;
     float turnBaseProb = 0.02f; // 2%
     float turnProbStep = 0.02f; // 每次递增2%

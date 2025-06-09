@@ -241,13 +241,9 @@ void SpineAnimation::staticSpineEventCallback(AnimationState* state, EventType t
             if (self->playingTemp) {
                 if (self->tempLoop) {
                     auto* newEntry = self->drawable->state->setAnimation(0, self->tempAnim.c_str(), false);
-                    if (newEntry) {
-                        newEntry->setMixDuration(self->defaultMixTime);
-                    }
-                    return;
-                } else {
-                    self->playingTemp = false;
+                    if (newEntry) { newEntry->setMixDuration(self->defaultMixTime); } return;
                 }
+                self->playingTemp = false;
             }
             // 队列补充机制
             if (self->animQueue.size() <= 32) {

@@ -42,7 +42,8 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
     static sf::Clock doubleClickClock;
     static int lastClickButton = -1;
     static sf::Vector2i lastClickPos;
-    static constexpr float doubleClickThreshold = 0.5f; // 秒
+
+    static constexpr float doubleClickThreshold = 0.5f;
     static constexpr int doubleClickPixel = 10;
 
     extern SpineAnimation* animSystem; // 声明外部变量

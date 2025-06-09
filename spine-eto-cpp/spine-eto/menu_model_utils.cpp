@@ -79,7 +79,7 @@ MenuModel buildMenuModel(
     return model;
 }
 
-// 新增：默认菜单模型初始化函数，main.cpp 只需调用此函数即可
+// 默认菜单模型初始化函数，main.cpp 只需调用此函数即可
 MenuModel getDefaultMenuModel() {
     std::vector<MenuItemData> skinList = {
         { "弃土花开", "./source/image/弃土花开.png", "弃土花开" },

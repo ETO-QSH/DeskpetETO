@@ -5,7 +5,6 @@
 #include "spine_animation.h"
 
 // 物理参数
-// constexpr float GRAVITY = 1800.0f;      // px/s^2
 constexpr float HORIZ_DECAY = 0.85f;    // 水平速度衰减系数
 constexpr float DT_LIMIT = 0.05f;       // 最大dt，防止卡顿穿透
 constexpr float TOP_BOUNCE_GRAVITY = 2.0f; // 顶部反弹加速度倍数
@@ -16,7 +15,7 @@ struct WindowPhysicsState {
     float lastX = 0.0f;
     float lastY = 0.0f;
     bool isDragging = false;
-    bool locked = false; // 新增锁定标志
+    bool locked = false;
 };
 
 struct WindowWorkArea {

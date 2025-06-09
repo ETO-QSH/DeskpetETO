@@ -124,7 +124,7 @@ void setHandCursor(bool pressed) {
         SetCursor(hArrow);
 }
 
-// 鼠标消息处理（需在主消息循环中调用）
+// 鼠标消息处理
 void handleWindowCursor(HWND hwnd, bool isPressed) {
     POINT pt;
     GetCursorPos(&pt);
@@ -137,7 +137,7 @@ void handleWindowCursor(HWND hwnd, bool isPressed) {
     }
 }
 
-// 新增：显示主窗口
+// 显示主窗口
 void showMainWindow() {
     ShowWindow(hwnd, SW_SHOW);
 }

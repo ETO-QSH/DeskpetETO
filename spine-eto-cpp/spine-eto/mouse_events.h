@@ -2,11 +2,7 @@
 
 #include <SFML/Graphics.hpp>
 
-enum class MouseButtonType {
-    Left,
-    Right,
-    Other
-};
+enum class MouseButtonType { Left, Right, Other };
 
 struct DragState {
     bool dragging = false;
