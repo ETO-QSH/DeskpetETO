@@ -5,7 +5,7 @@
 #include "spine_animation.h"
 
 // 物理参数
-constexpr float GRAVITY = 1800.0f;      // px/s^2
+// constexpr float GRAVITY = 1800.0f;      // px/s^2
 constexpr float HORIZ_DECAY = 0.85f;    // 水平速度衰减系数
 constexpr float DT_LIMIT = 0.05f;       // 最大dt，防止卡顿穿透
 constexpr float TOP_BOUNCE_GRAVITY = 2.0f; // 顶部反弹加速度倍数
@@ -16,15 +16,13 @@ struct WindowPhysicsState {
     float lastX = 0.0f;
     float lastY = 0.0f;
     bool isDragging = false;
+    bool locked = false; // 新增锁定标志
 };
 
 struct WindowWorkArea {
     int minX, maxX, minY, maxY;
     int width, height;
 };
-
-// 步行参数
-constexpr float WALK_SPEED = 100.0f; // px/s
 
 // 新增步行状态
 static bool walkEnabled = true;
@@ -59,12 +57,9 @@ bool isGravityEnabled() {
 // 外部声明，需加上类型声明头文件
 extern SpineAnimation* animSystem;
 
-static float getCurrentScale() {
-    return animSystem ? animSystem->getScale() : 1.0f;
-}
-
-void updateWindowPhysics(HWND hwnd, WindowPhysicsState& state, const WindowWorkArea& area, float dt) {
+void updateWindowPhysics(HWND hwnd, WindowPhysicsState& state, const WindowWorkArea& area, float speed, float gravity, float dt) {
     if (state.isDragging) return; // 拖动时不应用物理
+    if (state.locked) return; // 锁定时不应用速度和位置更新
 
     dt = std::min(dt, DT_LIMIT);
 
@@ -76,15 +71,14 @@ void updateWindowPhysics(HWND hwnd, WindowPhysicsState& state, const WindowWorkA
 
     // 应用重力（可开关）
     if (isGravityEnabled()) {
-        state.vy += GRAVITY * dt;
+        state.vy += gravity * dt;
     }
 
     // 步行逻辑：只有接触底边且不在拖动状态且开启步行且动画为Move时
-    float scale = getCurrentScale();
     extern SpineAnimation* animSystem;
     bool isMoveAnim = animSystem && animSystem->getCurrentAnimation() == "Move";
     if (walkEnabled && isMoveAnim && std::abs(y - static_cast<float>(area.maxY)) < 0.5f) {
-        state.vx = WALK_SPEED * static_cast<float>(walkDirection) * scale;
+        state.vx = speed * static_cast<float>(walkDirection);
     }
 
     // 位置更新
@@ -108,7 +102,7 @@ void updateWindowPhysics(HWND hwnd, WindowPhysicsState& state, const WindowWorkA
         hitBottom = true;
     }
     if (y < static_cast<float>(area.minY)) {
-        state.vy += GRAVITY * TOP_BOUNCE_GRAVITY * dt;
+        state.vy += gravity * TOP_BOUNCE_GRAVITY * dt;
         state.vx *= HORIZ_DECAY;
         y = static_cast<float>(area.minY);
         hitTop = true;

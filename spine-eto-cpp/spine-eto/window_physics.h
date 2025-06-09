@@ -9,6 +9,7 @@ struct WindowPhysicsState {
     float lastX = 0.0f;
     float lastY = 0.0f;
     bool isDragging = false;
+    bool locked = false; // 新增锁定标志，保持与cpp一致
 };
 
 // 工作区信息
@@ -18,7 +19,7 @@ struct WindowWorkArea {
 };
 
 // 物理更新
-void updateWindowPhysics(HWND hwnd, WindowPhysicsState& state, const WindowWorkArea& area, float dt);
+void updateWindowPhysics(HWND hwnd, WindowPhysicsState& state, const WindowWorkArea& area, float speed, float gravity, float dt);
 
 // 重力开关
 void setGravityEnabled(bool enabled);

@@ -151,7 +151,7 @@ SpineAnimation* animSystem = nullptr;
 
 void initWindowAndShader(int width, int height, int offset) {
     window.create(sf::VideoMode(width, height), "Spine SFML", sf::Style::None);
-    window.setFramerateLimit(60);
+    window.setFramerateLimit(30); // 由60改为30
     hwnd = window.getSystemHandle();
 
     LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
@@ -207,7 +207,7 @@ void initWindowAndShader(int width, int height, int offset) {
     std::cout << CONSOLE_RESET << std::endl;
 }
 
-void initSpineModel(int width, int height, int yOffset, int activeLevel) {
+void initSpineModel(int width, int height, int yOffset, int activeLevel, float mixTime, float Scale) {
     static SpineAnimation staticAnimSystem(width, height);
     animSystem = &staticAnimSystem;
 
@@ -219,9 +219,9 @@ void initSpineModel(int width, int height, int yOffset, int activeLevel) {
 
     if (info.valid) {
         animSystem->apply(info, activeLevel);
-        animSystem->setGlobalMixTime(0.2f);
+        animSystem->setGlobalMixTime(mixTime);
         animSystem->setDefaultAnimation("Move");
-        animSystem->setScale(0.5f);
+        animSystem->setScale(Scale);
         animSystem->setFlip(false, false);
         animSystem->setPosition(width / 2.0f, yOffset);
         animSystem->playTemp("Move");

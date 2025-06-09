@@ -5,6 +5,7 @@
 #include "console_colors.h"
 #include "menu_model_utils.h"
 #include "spine_animation.h"
+#include "window_physics.h"
 
 // 声明全局退出标志
 bool g_appShouldExit = false;
@@ -115,6 +116,8 @@ MenuModel getDefaultMenuModel() {
             setWalkEnabled(false);
             extern void setGravityEnabled(bool);
             setGravityEnabled(false);
+            extern WindowPhysicsState g_windowPhysicsState;
+            g_windowPhysicsState.locked = true;
         },
         [] {
             printf(CONSOLE_BRIGHT_GREEN "[MENU] 位置锁定: 关" CONSOLE_RESET "\n");
@@ -122,6 +125,10 @@ MenuModel getDefaultMenuModel() {
             setWalkEnabled(true);
             extern void setGravityEnabled(bool);
             setGravityEnabled(true);
+            extern WindowPhysicsState g_windowPhysicsState;
+            g_windowPhysicsState.locked = false;
+            g_windowPhysicsState.vx = 0.0f;
+            g_windowPhysicsState.vy = 0.0f;
         },
         [](int state){
             extern SpineAnimation* animSystem;
@@ -130,17 +137,14 @@ MenuModel getDefaultMenuModel() {
                     printf(CONSOLE_BRIGHT_GREEN "[MENU] 目前状态: 坐" CONSOLE_RESET "\n");
                     if (animSystem) {
                         animSystem->playTemp("Sit", true);
-                    }
-                    break;
+                    } break;
                 case 2:
                     printf(CONSOLE_BRIGHT_GREEN "[MENU] 目前状态: 卧" CONSOLE_RESET "\n");
                     if (animSystem) {
                         animSystem->playTemp("Sleep", true);
-                    }
-                    break;
+                    } break;
                 default:
                     printf(CONSOLE_BRIGHT_GREEN "[MENU] 目前状态: 行" CONSOLE_RESET "\n");
-                    break;
             }
         },
         [] {

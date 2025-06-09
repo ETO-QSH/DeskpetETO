@@ -28,14 +28,19 @@ constexpr int WINDOW_WIDTH = 400;
 constexpr int WINDOW_HEIGHT = 400;
 constexpr int Y_OFFSET = 150;
 
-// 全局活跃系数
+// 全局动画参数
 constexpr int ACTIVE_LEVEL = 2;
+constexpr float MIX_TIME = 0.25f;
+constexpr float G_SCALE = 0.5f;
+
+constexpr int WALK_SPEED = 100;
+constexpr float GRAVITY_TIME = 1.2f;
 
 int main() {
     system("chcp 65001");
 
     initWindowAndShader(WINDOW_WIDTH, WINDOW_HEIGHT, Y_OFFSET);
-    initSpineModel(WINDOW_WIDTH, WINDOW_HEIGHT, Y_OFFSET, ACTIVE_LEVEL);
+    initSpineModel(WINDOW_WIDTH, WINDOW_HEIGHT, Y_OFFSET, ACTIVE_LEVEL, MIX_TIME, G_SCALE);
 
     MouseEventManager mouseEventManager;
 
@@ -57,7 +62,11 @@ int main() {
     g_contextMenu = initMenu(model, font, []{ /* 可选：菜单关闭回调 */ });
     g_mainWindow = &window;
 
+    float speed = WALK_SPEED * G_SCALE;
+    int gravity = (g_workArea.maxY - g_workArea.minY) * 2 / (GRAVITY_TIME * GRAVITY_TIME);
+
     sf::Clock deltaClock;
+    float minFrameTime = 1.0f / 30.0f; // 30 FPS
     while (window.isOpen()) {
         sf::Event event{};
         while (window.pollEvent(event)) {
@@ -81,7 +90,7 @@ int main() {
         float delta = deltaClock.restart().asSeconds();
 
         // 持续应用物理效果
-        updateWindowPhysics(hwnd, g_windowPhysicsState, g_workArea, delta);
+        updateWindowPhysics(hwnd, g_windowPhysicsState, g_workArea, speed, gravity, delta);
 
         drawable->update(delta);
 
@@ -94,6 +103,12 @@ int main() {
         window.clear(sf::Color::Transparent);
         window.draw(*drawable);
         window.display();
+
+        // 限制帧率到30FPS
+        float elapsed = deltaClock.getElapsedTime().asSeconds();
+        if (elapsed < minFrameTime) {
+            sleep(sf::seconds(minFrameTime - elapsed));
+        }
     }
 
     // 程序退出前再次确保所有菜单线程已释放

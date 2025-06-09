@@ -18,4 +18,4 @@ HRGN BitmapToRgnAlpha(HBITMAP hBmp, BYTE alphaThreshold = 16);
 void setClickThrough(HWND hwnd, const sf::Image& image);
 
 void initWindowAndShader(int width, int height, int offset);
-void initSpineModel(int width, int height, int yOffset, int activeLevel);
+void initSpineModel(int width, int height, int yOffset, int activeLevel, float mixTime, float Scale);

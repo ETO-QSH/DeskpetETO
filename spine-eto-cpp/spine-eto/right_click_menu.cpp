@@ -501,7 +501,7 @@ void drawMenu(MenuWidget* menuPtr, sf::RenderWindow* parentWindow, const sf::Vec
 
     menuTexture.create(menuW, menuH);
     menuWindow.create(sf::VideoMode(menuW, menuH), L"Menu", sf::Style::None);
-    menuWindow.setFramerateLimit(60);
+    menuWindow.setFramerateLimit(30); // 由60改为30
     menuHwnd = menuWindow.getSystemHandle();
     LONG exStyle = GetWindowLong(menuHwnd, GWL_EXSTYLE);
     exStyle |= WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED;
