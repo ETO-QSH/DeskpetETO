@@ -150,12 +150,13 @@ SkeletonDrawable* drawable = nullptr;
 SpineAnimation* animSystem = nullptr;
 
 void initWindowAndShader(int width, int height, int offset) {
-    window.create(sf::VideoMode(width, height), "Spine SFML", sf::Style::None);
+    window.create(sf::VideoMode(width, height), "DeskpetETO", sf::Style::None);
     window.setFramerateLimit(30); // 由60改为30
     hwnd = window.getSystemHandle();
 
     LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-    exStyle |= WS_EX_LAYERED;
+    exStyle |= WS_EX_LAYERED | WS_EX_TOOLWINDOW; // 增加 TOOLWINDOW
+    exStyle &= ~WS_EX_APPWINDOW; // 移除 APPWINDOW
     exStyle &= ~WS_EX_TRANSPARENT;
     SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
 
