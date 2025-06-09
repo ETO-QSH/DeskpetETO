@@ -16,8 +16,6 @@
 
 using namespace spine;
 
-constexpr int ACTIVE_LEVEL = 2;
-
 SpineAnimation::SpineAnimation(int width, int height)
     : windowWidth(width), windowHeight(height), defaultMixTime(0.2f) {
 }
@@ -129,7 +127,12 @@ void SpineAnimation::setPosition(float pos_x, float pos_y) {
 
 // --- 缩放和翻转控制 ---
 void SpineAnimation::setFlip(bool newFlipX, bool newFlipY) {
-    if (newFlipX) flipX = !flipX;
+    static int flipCount = 0;
+    if (newFlipX) {
+        flipX = !flipX;
+        const char* dir = (flipCount++ % 2 == 0) ? "Left" : "Right";
+        printf(CONSOLE_BRIGHT_RED "[FLIP] Face to %s\n" CONSOLE_RESET, dir);
+    }
     if (newFlipY) flipY = !flipY;
     applyTransform();
 }
@@ -188,6 +191,8 @@ std::string SpineAnimation::getCurrentAnimation() const {
 // --- 临时播放动画 ---
 void SpineAnimation::playTemp(const std::string& name, bool loop, float mixDuration) {
     if (drawable) {
+        // 先清除当前动画，避免播放结束时触发COMPLETE事件
+        drawable->state->clearTracks();
         auto* entry = drawable->state->setAnimation(0, name.c_str(), loop);
         if (mixDuration >= 0 && entry) {
             entry->setMixDuration(mixDuration);
@@ -199,7 +204,7 @@ void SpineAnimation::playTemp(const std::string& name, bool loop, float mixDurat
 }
 
 // --- 应用加载的数据 ---
-void SpineAnimation::apply(const SpineLoadInfo& info) {
+void SpineAnimation::apply(const SpineLoadInfo& info, int activeLevel) {
     if (info.valid) {
         skeletonData = info.skeletonData;
         atlas = info.atlas;
@@ -212,18 +217,19 @@ void SpineAnimation::apply(const SpineLoadInfo& info) {
         clearQueue();
         playingTemp = false;
 
-        // 设置事件监听器（必须用函数指针或静态成员函数）
+        // 存储活跃系数
+        this->activeLevel = activeLevel;
+        // 设置事件监听器（只能用静态函数指针）
         drawable->state->setListener(&SpineAnimation::staticSpineEventCallback);
-        // 绑定this到rendererObject
         drawable->state->setRendererObject(this);
     }
 }
 
 // 静态事件回调（AnimationStateListener签名）
 void SpineAnimation::staticSpineEventCallback(AnimationState* state, EventType type, TrackEntry* entry, Event* event) {
-    // 通过rendererObject获取this指针
     auto* self = reinterpret_cast<SpineAnimation*>(state->getRendererObject());
     if (!self || !entry || !entry->getAnimation()) return;
+    int activeLevel = self->activeLevel;
     std::string animationName = entry->getAnimation()->getName().buffer();
     switch (type) {
         case EventType_Start:
@@ -260,7 +266,7 @@ void SpineAnimation::staticSpineEventCallback(AnimationState* state, EventType t
                         animDur[anim->getName().buffer()] = anim->getDuration();
                     }
                 }
-                ActiveParams params = getActiveParams(ACTIVE_LEVEL);
+                ActiveParams params = getActiveParams(activeLevel);
                 auto newQueue = generateRandomAnimQueueWithPrefix(
                     prefix, params.relaxToMoveRatio, params.specialRatio, 64, animDur);
                 for (const auto& anim : newQueue) {

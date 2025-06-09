@@ -24,9 +24,9 @@ sf::RenderWindow* g_mainWindow = nullptr;
 WindowWorkArea g_workArea;
 
 // 全局窗口和渲染尺寸参数
-constexpr int WINDOW_WIDTH = 360;
-constexpr int WINDOW_HEIGHT = 360;
-constexpr int Y_OFFSET = 120;
+constexpr int WINDOW_WIDTH = 400;
+constexpr int WINDOW_HEIGHT = 400;
+constexpr int Y_OFFSET = 150;
 
 // 全局活跃系数
 constexpr int ACTIVE_LEVEL = 2;
@@ -35,7 +35,7 @@ int main() {
     system("chcp 65001");
 
     initWindowAndShader(WINDOW_WIDTH, WINDOW_HEIGHT, Y_OFFSET);
-    initSpineModel(WINDOW_WIDTH, WINDOW_HEIGHT, Y_OFFSET);
+    initSpineModel(WINDOW_WIDTH, WINDOW_HEIGHT, Y_OFFSET, ACTIVE_LEVEL);
 
     MouseEventManager mouseEventManager;
 

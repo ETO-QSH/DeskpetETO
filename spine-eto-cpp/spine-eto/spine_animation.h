@@ -30,7 +30,7 @@ public:
     static SpineLoadInfo loadImpl(const std::string& atlasPath, const std::string& skeletonPath, bool isJson);
 
     // 应用载入的数据
-    void apply(const SpineLoadInfo& info);
+    void apply(const SpineLoadInfo& info, int activeLevel);
 
     // 设置全局混合时间（秒）
     void setGlobalMixTime(float mixTime);
@@ -73,6 +73,9 @@ public:
 
     // 新增：获取当前缩放
     float getScale() const { return scale; }
+
+    // 新增：存储当前活跃系数
+    int activeLevel = 2;
 
 private:
     int windowWidth, windowHeight;

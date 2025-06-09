@@ -10,8 +10,6 @@
 
 using namespace spine;
 
-constexpr int ACTIVE_LEVEL = 2;
-
 HRGN BitmapToRgnAlpha(HBITMAP hBmp, BYTE alphaThreshold) {
     HRGN hRgn = nullptr;
     if (hBmp) {
@@ -209,7 +207,7 @@ void initWindowAndShader(int width, int height, int offset) {
     std::cout << CONSOLE_RESET << std::endl;
 }
 
-void initSpineModel(int width, int height, int yOffset) {
+void initSpineModel(int width, int height, int yOffset, int activeLevel) {
     static SpineAnimation staticAnimSystem(width, height);
     animSystem = &staticAnimSystem;
 
@@ -220,7 +218,7 @@ void initSpineModel(int width, int height, int yOffset) {
     );
 
     if (info.valid) {
-        animSystem->apply(info);
+        animSystem->apply(info, activeLevel);
         animSystem->setGlobalMixTime(0.2f);
         animSystem->setDefaultAnimation("Move");
         animSystem->setScale(0.5f);
@@ -229,7 +227,7 @@ void initSpineModel(int width, int height, int yOffset) {
         animSystem->playTemp("Move");
 
         // 自动队列生成
-        ActiveParams params = getActiveParams(ACTIVE_LEVEL);
+        ActiveParams params = getActiveParams(activeLevel);
         std::vector<std::string> animQueue = generateRandomAnimQueue(
             params.relaxToMoveRatio, params.specialRatio, 128, info.animationsWithDuration);
 
