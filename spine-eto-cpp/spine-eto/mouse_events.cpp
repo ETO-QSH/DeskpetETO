@@ -46,6 +46,7 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
     static constexpr int doubleClickPixel = 10;
 
     extern SpineAnimation* animSystem; // 声明外部变量
+    extern MenuWidgetWithHide* g_contextMenu; // 声明全局菜单指针
 
     // 用全局物理状态
     WindowPhysicsState& physicsState = g_windowPhysicsState;
@@ -74,6 +75,8 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
                 if (animSystem) {
                     animSystem->playTemp("Interact");
                 }
+                // 新增：双击时将第一个三态按钮状态设为0
+                if (g_contextMenu) setFirstTriToggleToZero(reinterpret_cast<MenuWidget*>(g_contextMenu));
             }
             lastClickButton = sf::Mouse::Left;
             lastClickPos = pos;

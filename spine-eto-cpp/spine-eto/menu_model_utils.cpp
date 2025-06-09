@@ -140,9 +140,6 @@ MenuModel getDefaultMenuModel() {
                     break;
                 default:
                     printf(CONSOLE_BRIGHT_GREEN "[MENU] 目前状态: 行" CONSOLE_RESET "\n");
-                    if (animSystem) {
-                        animSystem->playTemp("Move");
-                    }
                     break;
             }
         },

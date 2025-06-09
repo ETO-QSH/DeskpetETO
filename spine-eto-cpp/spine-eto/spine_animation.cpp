@@ -9,8 +9,8 @@
 #include <fstream>
 #include <iostream>
 
-#include "animation_queue_utils.h"
 #include "console_colors.h"
+#include "queue_utils.h"
 #include "spine_animation.h"
 #include "window_physics.h"
 

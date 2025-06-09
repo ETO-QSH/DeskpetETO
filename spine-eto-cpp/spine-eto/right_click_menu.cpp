@@ -433,6 +433,8 @@ private:
         iconCache[path] = tex;
         return iconCache[path];
     }
+
+    friend void setFirstTriToggleToZero(MenuWidget* root);
 };
 
 // 让MenuWidgetWithHide在main前定义
@@ -593,4 +595,30 @@ void popupMenu(sf::RenderWindow* parentWindow, const sf::Vector2f& pos, MenuWidg
         drawMenu(menu, parentWindow, pos);
     });
     // 不detach，始终join保证线程安全
+}
+
+// 设置第一个三态按钮为0（只设置第一个找到的ToggleTri）
+void setFirstTriToggleToZero(MenuWidget* root) {
+    if (!root) return;
+    std::vector<MenuWidget*> stack;
+    stack.push_back(root);
+    while (!stack.empty()) {
+        MenuWidget* widget = stack.back();
+        stack.pop_back();
+        auto& entries = const_cast<std::vector<MenuEntry>&>(widget->m_entries);
+        auto& submenus = widget->m_submenus;
+        for (size_t i = 0; i < entries.size(); ++i) {
+            auto& entry = entries[i];
+            if (entry.type == MenuEntryType::ToggleTri) {
+                if (entry.toggleState != 0) {
+                    entry.toggleState = 0;
+                    if (entry.toggleCallback) entry.toggleCallback(0);
+                }
+                return;
+            }
+            if (entry.type == MenuEntryType::SubMenu && submenus[i]) {
+                stack.push_back(submenus[i].get());
+            }
+        }
+    }
 }

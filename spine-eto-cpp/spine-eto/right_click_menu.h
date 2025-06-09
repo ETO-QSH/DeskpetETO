@@ -95,3 +95,6 @@ void popupMenu(sf::RenderWindow* parentWindow, const sf::Vector2f& pos, MenuWidg
 
 // 绘制菜单到RenderTexture
 void drawMenu(MenuWidget* menu, sf::RenderTexture& target);
+
+// 设置第一个三态按钮为0（只设置第一个找到的ToggleTri）
+void setFirstTriToggleToZero(MenuWidget* root);

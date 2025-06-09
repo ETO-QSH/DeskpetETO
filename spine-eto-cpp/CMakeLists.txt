@@ -27,7 +27,7 @@ add_executable(spine_eto_cpp main.cpp ${SPINE_CPP_SOURCES} ${SPINE_SFML_SOURCES}
         spine-eto/spine_win_utils.cpp spine-eto/mouse_events.cpp
         spine-eto/spine_animation.cpp spine-eto/window_physics.cpp
         spine-eto/right_click_menu.cpp spine-eto/menu_model_utils.cpp
-        spine-eto/animation_queue_utils.cpp)
+        spine-eto/queue_utils.cpp)
 
 # 链接 SFML 库
 target_link_libraries(spine_eto_cpp PRIVATE sfml-graphics sfml-window sfml-system)
