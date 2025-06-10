@@ -39,6 +39,8 @@ class Config(QConfig):
     velocity = RangeConfigItem("Animation", "Velocity", 5, RangeValidator(0, 10))
     dynamic = RangeConfigItem("Animation", "Dynamic", 2, RangeValidator(0, 6))
     modelSize = RangeConfigItem("Animation", "ModelSize", -1.0, RangeValidator2F(-2.0, 1.0))
+    windowCrop = RangeConfigItem("Animation", "WindowCrop", 0, RangeValidator(-6, 6))
+    workOffset = RangeConfigItem("Animation", "WorkOffset", 0, RangeValidator(-16, 16))
 
     none = {'tag': '0.0.0', 'title': 'None information', 'body': '', 'assets': [{'name': '???', 'size': 0, 'download_url': 'null'}]}
 
@@ -220,6 +222,22 @@ class Setting(ScrollArea):
             parent=self.animateGroup
         )
 
+        self.windowCropCard = RangeSettingCardInt(
+            cfg.windowCrop,
+            FluentIcon.CUT,
+            self.tr('窗口裁剪'),
+            self.tr('设置模型窗口裁切范围修正（*30px）'),
+            parent=self.animateGroup
+        )
+
+        self.workOffsetCard = RangeSettingCardInt(
+            cfg.workOffset,
+            FluentIcon.UNIT,
+            self.tr('位置修正'),
+            self.tr('设置模型窗口对于桌面任务栏位置修正（*10px）'),
+            parent=self.animateGroup
+        )
+
         self.__initWidget()
         self.setObjectName('SettingInterface')
 
@@ -256,6 +274,8 @@ class Setting(ScrollArea):
         self.animateGroup.addSettingCard(self.velocityCard)
         self.animateGroup.addSettingCard(self.dynamicCard)
         self.animateGroup.addSettingCard(self.modelSizeCard)
+        self.animateGroup.addSettingCard(self.windowCropCard)
+        self.animateGroup.addSettingCard(self.workOffsetCard)
 
         # add setting card group to layout
         self.expandLayout.setSpacing(20)

@@ -17,7 +17,9 @@
         "Gravity": 1.2,
         "ModelSize": -1.0,
         "Smooth": 0.25,
-        "Velocity": 5
+        "Velocity": 5,
+        "WindowCrop": 0,
+        "WorkOffset": 0
     },
     "Version": {
         "Library": {
