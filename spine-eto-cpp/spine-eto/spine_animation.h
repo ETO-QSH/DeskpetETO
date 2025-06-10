@@ -74,6 +74,9 @@ public:
     // 存储当前活跃系数
     int activeLevel = 2;
 
+    // 新增：判断当前是否为临时动画
+    bool isPlayingTemp() const { return playingTemp; }
+
 private:
     int windowWidth, windowHeight;
     float defaultMixTime;

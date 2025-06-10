@@ -16,6 +16,9 @@
 // 声明全局数据库变量（main.cpp定义）
 extern nlohmann::json g_modelDatabase;
 
+// 全局辉光信号变量
+bool g_showGlowEffect = false;
+
 // 声明全局菜单数据
 std::vector<MenuItemData> g_skinList;
 std::vector<MenuItemData> g_modelList;
@@ -259,6 +262,11 @@ MenuModel getDefaultMenuModel() {
                     } break;
                 default:
                     printf(CONSOLE_BRIGHT_GREEN "[MENU] 目前状态: 行" CONSOLE_RESET "\n");
+                    if (animSystem) {
+                        if (animSystem->isPlayingTemp()) {
+                            animSystem->playTemp("Interact");
+                        }
+                    }
             }
         },
         [] {
@@ -280,6 +288,11 @@ MenuModel getDefaultMenuModel() {
         },
         [] {
             printf(CONSOLE_BRIGHT_GREEN "[MENU] 占位符喵" CONSOLE_RESET "\n");
+            extern SpineAnimation* animSystem;
+            if (animSystem) {
+                animSystem->playTemp("Interact");
+            }
+            g_showGlowEffect = true;
         },
         [] {
             printf(CONSOLE_BRIGHT_GREEN "[MENU] 销毁退出" CONSOLE_RESET "\n");

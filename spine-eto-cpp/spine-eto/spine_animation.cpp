@@ -17,6 +17,8 @@
 
 using namespace spine;
 
+extern bool g_showGlowEffect;
+
 SpineAnimation::SpineAnimation(int width, int height)
     : windowWidth(width), windowHeight(height), defaultMixTime(0.2f) {
 }
@@ -263,6 +265,7 @@ void SpineAnimation::staticSpineEventCallback(AnimationState* state, EventType t
             break;
         case EventType_Complete:
             std::cout << CONSOLE_BRIGHT_BLACK << "[COMPLETE] Animation: " << animationName << CONSOLE_RESET << std::endl;
+            g_showGlowEffect = false; // 动画播放结束后关闭辉光效果
             // 优先处理临时动画循环
             if (self->playingTemp) {
                 if (self->tempLoop) {

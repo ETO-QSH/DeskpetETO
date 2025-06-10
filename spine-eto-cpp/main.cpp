@@ -25,10 +25,14 @@ sf::RenderWindow* g_mainWindow = nullptr;
 // 声明全局工作区，供 mouse_events.cpp 使用
 WindowWorkArea g_workArea;
 
+// 声明全局辉光信号变量
+extern bool g_showGlowEffect;
+
 // 全局窗口和渲染尺寸参数
-constexpr int WINDOW_WIDTH = 400;
-constexpr int WINDOW_HEIGHT = 400;
-constexpr int Y_OFFSET = 150;
+constexpr int WINDOW_WIDTH = 420;
+constexpr int WINDOW_HEIGHT = 420;
+constexpr int Y_OFFSET = 140;
+constexpr int WORK_OFFSET = 0;
 
 // 全局动画参数
 constexpr int ACTIVE_LEVEL = 2;
@@ -67,7 +71,7 @@ int main() {
     g_workArea.minX = workAreaRect.left;
     g_workArea.minY = workAreaRect.top;
     g_workArea.maxX = static_cast<int>(workAreaRect.right - WINDOW_WIDTH);
-    g_workArea.maxY = static_cast<int>(workAreaRect.bottom - WINDOW_HEIGHT) + Y_OFFSET;
+    g_workArea.maxY = static_cast<int>(workAreaRect.bottom - WINDOW_HEIGHT) + Y_OFFSET - WORK_OFFSET;
     g_workArea.width = WINDOW_WIDTH;
     g_workArea.height = WINDOW_HEIGHT;
 
@@ -114,7 +118,14 @@ int main() {
         renderTexture.draw(*drawable);
         renderTexture.display();
 
-        setClickThrough(hwnd, renderTexture.getTexture().copyToImage());
+        // 判断是否显示辉光
+        if (g_showGlowEffect) {
+            sf::Image img = renderTexture.getTexture().copyToImage();
+            sf::Image glowImg = addGlowToAlphaEdge(img, sf::Color(255, 255, 0, 127), 4);
+            setClickThrough(hwnd, glowImg);
+        } else {
+            setClickThrough(hwnd, renderTexture.getTexture().copyToImage());
+        }
 
         window.clear(sf::Color::Transparent);
         window.draw(*drawable);

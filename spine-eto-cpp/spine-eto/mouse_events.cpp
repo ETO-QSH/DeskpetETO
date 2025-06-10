@@ -76,7 +76,7 @@ void MouseEventManager::handleEvent(const sf::Event& event, const sf::RenderWind
                 if (animSystem) {
                     animSystem->playTemp("Interact");
                 }
-                // 新增：双击时将第一个三态按钮状态设为0
+                // 双击时将第一个三态按钮状态设为0
                 if (g_contextMenu) setFirstTriToggleToZero(reinterpret_cast<MenuWidget*>(g_contextMenu));
             }
             lastClickButton = sf::Mouse::Left;

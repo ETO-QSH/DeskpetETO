@@ -1,3 +1,4 @@
+#include <SFML/Graphics.hpp>
 #include <spine/spine-sfml.h>
 
 #include <iostream>
@@ -74,41 +75,59 @@ HRGN BitmapToRgnAlpha(HBITMAP hBmp, BYTE alphaThreshold) {
     return hRgn;
 }
 
-void setClickThrough(HWND hwnd, const sf::Image& image) {
-    BITMAPINFO bmi = {0};
+// 替换 setClickThrough，支持半透明（WS_EX_LAYERED + UpdateLayeredWindow 实现）
+void setLayeredWindowAlpha(HWND hwnd, const sf::Image& image) {
+    HDC hdcScreen = GetDC(nullptr);
+    HDC hdcMem = CreateCompatibleDC(hdcScreen);
+
+    int width = image.getSize().x;
+    int height = image.getSize().y;
+
+    BITMAPINFO bmi = { 0 };
     bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bmi.bmiHeader.biWidth = static_cast<LONG>(image.getSize().x);
-    bmi.bmiHeader.biHeight = -static_cast<LONG>(image.getSize().y);
+    bmi.bmiHeader.biWidth = width;
+    bmi.bmiHeader.biHeight = -height; // top-down
     bmi.bmiHeader.biPlanes = 1;
     bmi.bmiHeader.biBitCount = 32;
     bmi.bmiHeader.biCompression = BI_RGB;
 
     void* bits = nullptr;
-    HBITMAP hBmp = CreateDIBSection(nullptr, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
-    if (!hBmp) return;
-
-    const sf::Uint8* pixels = image.getPixelsPtr();
-    auto width = image.getSize().x;
-    auto height = image.getSize().y;
-    auto* dst = static_cast<sf::Uint8*>(bits);
-
-    for (unsigned y = 0; y < height; ++y) {
-        unsigned yDst = height - 1 - y;
-        for (unsigned x = 0; x < width; ++x) {
-            unsigned idxSrc = (y * width + x) * 4;
-            unsigned idxDst = (yDst * width + x) * 4;
-            dst[idxDst + 0] = pixels[idxSrc + 2];
-            dst[idxDst + 1] = pixels[idxSrc + 1];
-            dst[idxDst + 2] = pixels[idxSrc + 0];
-            dst[idxDst + 3] = pixels[idxSrc + 3];
-        }
+    HBITMAP hBmp = CreateDIBSection(hdcScreen, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
+    if (!hBmp) {
+        DeleteDC(hdcMem);
+        ReleaseDC(nullptr, hdcScreen);
+        return;
     }
 
-    HRGN hRgn = BitmapToRgnAlpha(hBmp, 32);
-    SetWindowRgn(hwnd, hRgn, TRUE);
+    HBITMAP hOldBmp = (HBITMAP)SelectObject(hdcMem, hBmp);
 
+    // 修正颜色通道顺序（SFML: RGBA，Windows: BGRA）
+    const sf::Uint8* src = image.getPixelsPtr();
+    sf::Uint8* dst = static_cast<sf::Uint8*>(bits);
+    for (int i = 0; i < width * height; ++i) {
+        dst[i * 4 + 0] = src[i * 4 + 2]; // B
+        dst[i * 4 + 1] = src[i * 4 + 1]; // G
+        dst[i * 4 + 2] = src[i * 4 + 0]; // R
+        dst[i * 4 + 3] = src[i * 4 + 3]; // A
+    }
+
+    POINT ptSrc = { 0, 0 };
+    SIZE sizeWnd = { width, height };
+    BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+
+    SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+
+    UpdateLayeredWindow(hwnd, hdcScreen, nullptr, &sizeWnd, hdcMem, &ptSrc, 0, &blend, ULW_ALPHA);
+
+    SelectObject(hdcMem, hOldBmp);
     DeleteObject(hBmp);
-    DeleteObject(hRgn);
+    DeleteDC(hdcMem);
+    ReleaseDC(nullptr, hdcScreen);
+}
+
+// 兼容旧接口：setClickThrough 实际调用 setLayeredWindowAlpha
+void setClickThrough(HWND hwnd, const sf::Image& image) {
+    setLayeredWindowAlpha(hwnd, image);
 }
 
 // 手势光标设置
@@ -249,4 +268,56 @@ void initSpineModel(int width, int height, int yOffset, int activeLevel, float m
     }
 
     drawable = animSystem->getDrawable();
+}
+
+// 更高效的辉光实现：只遍历一次像素，利用距离变换思想
+sf::Image addGlowToAlphaEdge(const sf::Image& src, sf::Color glowColor, int glowWidth) {
+    sf::Vector2u size = src.getSize();
+    sf::Image result;
+    result.create(size.x, size.y, sf::Color::Transparent);
+
+    // 先拷贝原图
+    result.copy(src, 0, 0);
+
+    // 记录每个像素到最近不透明像素的距离（初始化为大于glowWidth）
+    std::vector dist(size.x, std::vector<int>(size.y, glowWidth + 1));
+
+    // 先标记所有不透明像素为0
+    for (unsigned x = 0; x < size.x; ++x)
+        for (unsigned y = 0; y < size.y; ++y)
+            if (src.getPixel(x, y).a > 0)
+                dist[x][y] = 0;
+
+    // 两次扫描（近似距离变换，4邻域曼哈顿距离）
+    // 正向
+    for (unsigned y = 0; y < size.y; ++y) {
+        for (unsigned x = 0; x < size.x; ++x) {
+            if (x > 0)
+                dist[x][y] = std::min(dist[x][y], dist[x - 1][y] + 1);
+            if (y > 0)
+                dist[x][y] = std::min(dist[x][y], dist[x][y - 1] + 1);
+        }
+    }
+    // 反向
+    for (int y = int(size.y) - 1; y >= 0; --y) {
+        for (int x = int(size.x) - 1; x >= 0; --x) {
+            if (x + 1 < int(size.x))
+                dist[x][y] = std::min(dist[x][y], dist[x + 1][y] + 1);
+            if (y + 1 < int(size.y))
+                dist[x][y] = std::min(dist[x][y], dist[x][y + 1] + 1);
+        }
+    }
+
+    // 绘制辉光
+    for (unsigned x = 0; x < size.x; ++x) {
+        for (unsigned y = 0; y < size.y; ++y) {
+            int d = dist[x][y];
+            if (src.getPixel(x, y).a == 0 && d > 0 && d <= glowWidth) {
+                sf::Color c = glowColor;
+                c.a = glowColor.a * (glowWidth - d + 1) / (glowWidth + 1); // 边缘渐变
+                result.setPixel(x, y, c);
+            }
+        }
+    }
+    return result;
 }
