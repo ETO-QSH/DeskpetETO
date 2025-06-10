@@ -84,9 +84,6 @@ private:
 class MenuWidget;
 struct MenuWidgetWithHide;
 
-// 构造菜单结构
-MenuModel buildMenuModel();
-
 // 初始化菜单控件
 MenuWidgetWithHide* initMenu(const MenuModel& model, const sf::Font& font, std::function<void()> onHideAll);
 

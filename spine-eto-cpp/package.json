@@ -1,0 +1,36 @@
+{
+  "default": ["弃土花开", "基建"],
+  "library": {
+    "弃土花开": {
+      "head": "./source/image/弃土花开.png",
+      "基建": {
+        "png": "./models/lisa/build_char_358_lisa_lxh#1.png",
+        "skel": "./models/lisa/build_char_358_lisa_lxh#1.skel",
+        "atlas": "./models/lisa/build_char_358_lisa_lxh#1.atlas"
+      },
+      "正面": {
+        "png": "./models/amiya/build_char_1037_amiya3_sale_13.png",
+        "skel": "./models/amiya/build_char_1037_amiya3_sale_13.skel",
+        "atlas": "./models/amiya/build_char_1037_amiya3_sale_13.atlas"
+      },
+      "背面": {
+        "png": "./models/nymph/build_char_4146_nymph_epoque_42.png",
+        "skel": "./models/nymph/build_char_4146_nymph_epoque_42.skel",
+        "atlas": "./models/nymph/build_char_4146_nymph_epoque_42.atlas"
+      }
+    },
+    "寄自奥格尼斯科": {
+      "head": "./source/image/寄自奥格尼斯科.png",
+      "基建": {
+        "png": "./models/nymph/build_char_4146_nymph_epoque_42.png",
+        "skel": "./models/nymph/build_char_4146_nymph_epoque_42.skel",
+        "atlas": "./models/nymph/build_char_4146_nymph_epoque_42.atlas"
+      },
+      "正面": {
+        "png": "./models/amiya/build_char_1037_amiya3_sale_13.png",
+        "skel": "./models/amiya/build_char_1037_amiya3_sale_13.skel",
+        "atlas": "./models/amiya/build_char_1037_amiya3_sale_13.atlas"
+      }
+    }
+  }
+}

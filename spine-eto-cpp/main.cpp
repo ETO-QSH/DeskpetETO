@@ -1,7 +1,7 @@
 #include <spine/spine-sfml.h>
 #include <SFML/Graphics.hpp>
+#include <fstream>
 
-#include <chrono>
 #include <thread>
 
 #include "spine-eto/menu_model_utils.h"
@@ -9,6 +9,8 @@
 #include "spine-eto/right_click_menu.h"
 #include "spine-eto/spine_win_utils.h"
 #include "spine-eto/window_physics.h"
+
+#include "dependencies/json.hpp"
 
 // 声明全局退出标志
 extern bool g_appShouldExit;
@@ -36,8 +38,22 @@ constexpr float G_SCALE = 0.5f;
 constexpr int WALK_SPEED = 100;
 constexpr float GRAVITY_TIME = 1.2f;
 
+// 全局模型数据库
+nlohmann::json g_modelDatabase;
+
+
 int main() {
     system("chcp 65001");
+
+    // 读取 package.json 到全局变量
+    {
+        std::ifstream dbFile("package.json");
+        if (!dbFile) {
+            printf("无法打开 package.json\n");
+            return 1;
+        }
+        dbFile >> g_modelDatabase;
+    }
 
     initWindowAndShader(WINDOW_WIDTH, WINDOW_HEIGHT, Y_OFFSET);
     initSpineModel(WINDOW_WIDTH, WINDOW_HEIGHT, Y_OFFSET, ACTIVE_LEVEL, MIX_TIME, G_SCALE);

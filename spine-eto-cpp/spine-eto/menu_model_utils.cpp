@@ -1,11 +1,65 @@
 #include <chrono>
 #include <cstdio>
 #include <Windows.h>
+#include <vector>
+#include <string>
+#include <functional>
 
 #include "console_colors.h"
 #include "menu_model_utils.h"
 #include "spine_animation.h"
 #include "window_physics.h"
+
+// 引入json头文件
+#include "../dependencies/json.hpp"
+
+// 声明全局数据库变量（main.cpp定义）
+extern nlohmann::json g_modelDatabase;
+
+// 声明全局菜单数据
+std::vector<MenuItemData> g_skinList;
+std::vector<MenuItemData> g_modelList;
+
+// 刷新菜单数据
+void updateMenuLists() {
+    g_skinList.clear();
+    g_modelList.clear();
+
+    // 获取default皮肤和模型
+    if (!g_modelDatabase.contains("default") || !g_modelDatabase.contains("library")) return;
+    const auto& def = g_modelDatabase["default"];
+    if (!def.is_array() || def.size() < 2) return;
+    std::string currentSkin = def[0];
+    std::string currentModel = def[1];
+
+    const auto& lib = g_modelDatabase["library"];
+
+    // 皮肤列表（除当前皮肤）
+    for (auto it = lib.begin(); it != lib.end(); ++it) {
+        std::string skinName = it.key();
+        if (skinName == currentSkin) continue;
+        std::string headPath;
+        if (it.value().contains("head")) {
+            headPath = it.value()["head"].get<std::string>();
+        }
+        g_skinList.push_back({ skinName, headPath, skinName });
+    }
+
+    // 模型列表（当前皮肤下所有模型，除head、非对象、当前模型）
+    if (lib.contains(currentSkin)) {
+        const auto& skinObj = lib[currentSkin];
+        for (auto it = skinObj.begin(); it != skinObj.end(); ++it) {
+            std::string modelName = it.key();
+            if (modelName == "head" || modelName == currentModel) continue;
+            if (!it.value().is_object()) continue;
+            std::string pngPath;
+            if (it.value().contains("png")) {
+                pngPath = it.value()["png"].get<std::string>();
+            }
+            g_modelList.push_back({ modelName, pngPath, modelName });
+        }
+    }
+}
 
 // 声明全局退出标志
 bool g_appShouldExit = false;
@@ -79,26 +133,63 @@ MenuModel buildMenuModel(
     return model;
 }
 
+// 工具函数：切换皮肤并自动选择模型
+void switchSkin(const std::string& skinName) {
+    if (!g_modelDatabase.contains("library")) return;
+    const auto& lib = g_modelDatabase["library"];
+    if (!lib.contains(skinName)) return;
+    const auto& skinObj = lib[skinName];
+
+    // 1. 同名
+    if (skinObj.contains(skinName)) {
+        g_modelDatabase["default"][0] = skinName;
+        g_modelDatabase["default"][1] = skinName;
+        return;
+    }
+    // 2. 基建
+    if (skinObj.contains("基建")) {
+        g_modelDatabase["default"][0] = skinName;
+        g_modelDatabase["default"][1] = "基建";
+        return;
+    }
+    // 3. 正面
+    if (skinObj.contains("正面")) {
+        g_modelDatabase["default"][0] = skinName;
+        g_modelDatabase["default"][1] = "正面";
+        return;
+    }
+    // 4. 取第一个模型（排除head）
+    for (auto it = skinObj.begin(); it != skinObj.end(); ++it) {
+        if (it.key() == "head") continue;
+        g_modelDatabase["default"][0] = skinName;
+        g_modelDatabase["default"][1] = it.key();
+        return;
+    }
+}
+
+// 工具函数：切换模型
+void switchModel(const std::string& modelName) {
+    g_modelDatabase["default"][1] = modelName;
+}
+
 // 默认菜单模型初始化函数，main.cpp 只需调用此函数即可
 MenuModel getDefaultMenuModel() {
-    std::vector<MenuItemData> skinList = {
-        { "弃土花开", "./source/image/弃土花开.png", "弃土花开" },
-        { "寰宇独奏", "./source/image/寰宇独奏.png", "寰宇独奏" },
-        { "至高判决", "./source/image/至高判决.png", "至高判决" }
-    };
-    std::vector<MenuItemData> modelList = {
-        { "寄自奥格尼斯科", "./source/image/寄自奥格尼斯科.png", "寄自奥格尼斯科" },
-        { "夏卉 FA210", "./source/image/夏卉 FA210.png", "夏卉 FA210" },
-        { "远行前的野餐", "./source/image/远行前的野餐.png", "远行前的野餐" }
-    };
+    // 初始化时刷新一次
+    updateMenuLists();
     return buildMenuModel(
-        skinList,
+        g_skinList,
         [](const std::string& v) {
             printf(CONSOLE_BRIGHT_GREEN "[MENU] 切换皮肤: %s" CONSOLE_RESET "\n", v.c_str());
+            switchSkin(v);
+            updateMenuLists();
+            // 此处可加菜单刷新逻辑
         },
-        modelList,
+        g_modelList,
         [](const std::string& v) {
             printf(CONSOLE_BRIGHT_GREEN "[MENU] 切换模型: %s" CONSOLE_RESET "\n", v.c_str());
+            switchModel(v);
+            updateMenuLists();
+            // 此处可加菜单刷新逻辑
         },
         [] {
             printf(CONSOLE_BRIGHT_GREEN "[MENU] 窗口置顶: 开" CONSOLE_RESET "\n");
