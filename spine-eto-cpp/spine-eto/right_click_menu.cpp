@@ -1,7 +1,7 @@
 #include <cmath>
 #include <mutex>
 #include <thread>
-#include <Windows.h>
+#include <windows.h>
 
 #include "console_colors.h"
 #include "right_click_menu.h"

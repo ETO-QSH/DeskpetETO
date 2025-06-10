@@ -1,5 +1,5 @@
 #include <cstdio>
-#include <Windows.h>
+#include <windows.h>
 
 #include "console_colors.h"
 #include "mouse_events.h"

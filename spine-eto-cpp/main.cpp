@@ -20,6 +20,7 @@ using namespace spine;
 WindowPhysicsState g_windowPhysicsState;
 // 声明全局菜单指针，供 mouse_events.cpp 使用
 MenuWidgetWithHide* g_contextMenu = nullptr;
+// 声明全局主窗口，供 mouse_events.cpp 使用
 sf::RenderWindow* g_mainWindow = nullptr;
 // 声明全局工作区，供 mouse_events.cpp 使用
 WindowWorkArea g_workArea;

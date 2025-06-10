@@ -1,9 +1,9 @@
 #include <chrono>
 #include <cstdio>
-#include <Windows.h>
+#include <functional>
+#include <windows.h>
 #include <vector>
 #include <string>
-#include <functional>
 
 #include "console_colors.h"
 #include "menu_model_utils.h"

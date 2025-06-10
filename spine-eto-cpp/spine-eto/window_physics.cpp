@@ -1,6 +1,6 @@
 #include <algorithm>
 #include <cmath>
-#include <Windows.h>
+#include <windows.h>
 
 #include "spine_animation.h"
 
