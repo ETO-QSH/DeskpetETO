@@ -214,8 +214,8 @@ void initSpineModel(int width, int height, int yOffset, int activeLevel, float m
 
     // 加载资源
     auto info = SpineAnimation::loadFromBinary(
-        "./models/lisa/build_char_358_lisa_lxh#1.atlas",
-        "./models/lisa/build_char_358_lisa_lxh#1.skel"
+        "./models/铃兰/spine/春之颂/基建/build_char_358_lisa_lxh_1.atlas",
+        "./models/铃兰/spine/春之颂/基建/build_char_358_lisa_lxh_1.skel"
     );
 
     if (info.valid) {

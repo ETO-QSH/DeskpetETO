@@ -6,6 +6,7 @@
 #include "console_colors.h"
 #include "right_click_menu.h"
 #include "spine_win_utils.h"
+#include "menu_model_utils.h"
 
 // 圆角矩形辅助函数
 class RoundedRectangleShape : public sf::Shape {
@@ -145,8 +146,10 @@ public:
             }
             if (idx >= 0 && idx < static_cast<int>(m_entries.size())) {
                 auto& entry = const_cast<MenuEntry&>(m_entries[idx]);
-                if (entry.type == MenuEntryType::Action && entry.callback) {
-                    entry.callback();
+                if (entry.type == MenuEntryType::Action) {
+                    if (entry.callback) {
+                        entry.callback();
+                    }
                     hideAll();
                     consumed = true;
                 }
@@ -322,8 +325,23 @@ public:
         if (parent) parent->hideAll();
     }
 
+    // 新增：获取菜单项引用
+    std::vector<MenuEntry>& entries() { return m_entries; }
+    const std::vector<MenuEntry>& entries() const { return m_entries; }
+
+    // 新增：刷新指定子菜单内容
+    void refreshSubmenu(size_t idx, const std::vector<MenuEntry>& newEntries) {
+        if (idx >= m_entries.size()) return;
+        if (m_entries[idx].type != MenuEntryType::SubMenu) return;
+        m_entries[idx].submenu = newEntries;
+        if (m_submenus[idx]) {
+            m_submenus[idx] = std::make_unique<MenuWidget>(newEntries, m_font);
+            m_submenus[idx]->parent = this;
+        }
+    }
+
 private:
-    const std::vector<MenuEntry>& m_entries;
+    std::vector<MenuEntry> m_entries; // 这里去掉const和引用
     const sf::Font& m_font;
     sf::Vector2f m_position;
     bool visible;
@@ -467,14 +485,14 @@ MenuWidgetWithHide* initMenu(const MenuModel& model, const sf::Font& font, std::
 // 修改为线程安全，且避免多线程exit时崩溃
 void safeCloseMenuWindow() {
     static std::mutex closeMutex;
-    std::lock_guard<std::mutex> lock(closeMutex);
+    std::lock_guard lock(closeMutex);
     if (menu) menu->hide();
 }
 
 // 修改为立即销毁菜单窗口和线程
 void forceCloseMenuWindow() {
     static std::mutex closeMutex;
-    std::lock_guard<std::mutex> lock(closeMutex);
+    std::lock_guard lock(closeMutex);
     // 直接关闭菜单窗口（如果存在）
     if (menuHwnd) {
         // 强制关闭窗口
@@ -582,8 +600,25 @@ void drawMenu(MenuWidget* menuPtr, sf::RenderWindow* parentWindow, const sf::Vec
 }
 
 // 弹出菜单接口
-void popupMenu(sf::RenderWindow* parentWindow, const sf::Vector2f& pos, MenuWidgetWithHide* /*menuPtr*/) {
+void popupMenu(sf::RenderWindow* parentWindow, const sf::Vector2f& pos, MenuWidgetWithHide* menuPtr) {
     std::lock_guard lock(menuThreadMutex);
+
+    if (!menuPtr) return;
+
+    // 动态刷新两个子菜单内容
+    extern SkinCallback g_skinCallback;
+    extern ModelCallback g_modelCallback;
+    auto skinEntries = getCurrentSkinEntries(g_skinCallback);
+    auto modelEntries = getCurrentModelEntries(g_modelCallback);
+
+    for (size_t i = 0; i < menuPtr->entries().size(); ++i) {
+        if (menuPtr->entries()[i].text == "切换皮肤" && menuPtr->entries()[i].type == MenuEntryType::SubMenu) {
+            menuPtr->refreshSubmenu(i, skinEntries);
+        }
+        if (menuPtr->entries()[i].text == "切换模型" && menuPtr->entries()[i].type == MenuEntryType::SubMenu) {
+            menuPtr->refreshSubmenu(i, modelEntries);
+        }
+    }
 
     // 等待上一个菜单线程完全退出
     if (menuThread.joinable()) {

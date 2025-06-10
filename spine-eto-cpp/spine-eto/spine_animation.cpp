@@ -6,6 +6,7 @@
 #include <spine/SkeletonBinary.h>
 #include <spine/SkeletonJson.h>
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 
@@ -30,26 +31,51 @@ SpineLoadInfo SpineAnimation::loadFromJson(const std::string& atlasFile, const s
 
 // --- 统一加载实现 ---
 SpineLoadInfo SpineAnimation::loadImpl(const std::string& atlasPath, const std::string& skeletonPath, bool isJson) {
+    // --------- 新增：复制到临时目录，解决中文路径问题 ---------
+    namespace fs = std::filesystem;
+    fs::create_directories("./models/temp");
+
+    // 复制 atlas
+    fs::path atlasSrc(atlasPath);
+    fs::path atlasDst = fs::path("./models/temp") / atlasSrc.filename();
+    try { copy_file(atlasSrc, atlasDst, fs::copy_options::overwrite_existing); } catch (...) {}
+
+    // 复制 skel/json
+    fs::path skelSrc(skeletonPath);
+    fs::path skelDst = fs::path("./models/temp") / skelSrc.filename();
+    try { copy_file(skelSrc, skelDst, fs::copy_options::overwrite_existing); } catch (...) {}
+
+    // 复制 png（和atlas同目录同名但扩展名为png）
+    fs::path pngSrc = atlasSrc.parent_path() / (atlasSrc.stem().string() + ".png");
+    fs::path pngDst = fs::path("./models/temp") / pngSrc.filename();
+    if (exists(pngSrc)) {
+        try { copy_file(pngSrc, pngDst, fs::copy_options::overwrite_existing); } catch (...) {}
+    }
+
+    // 用临时路径加载
+    std::string tempAtlas = atlasDst.string();
+    std::string tempSkel = skelDst.string();
+
     SpineLoadInfo info;
-    info.atlas = std::make_shared<Atlas>(atlasPath.c_str(), new SFMLTextureLoader());
+    info.atlas = std::make_shared<Atlas>(tempAtlas.c_str(), new SFMLTextureLoader());
     if (info.atlas->getPages().size() == 0) {
-        std::cout << CONSOLE_BRIGHT_RED << "Atlas load error: " << atlasPath << CONSOLE_RESET << std::endl;
+        std::cout << CONSOLE_BRIGHT_RED << "Atlas load error: " << tempAtlas << CONSOLE_RESET << std::endl;
         info.atlas.reset();
         return info;
     }
     std::cout << CONSOLE_BRIGHT_GREEN << "Atlas load down!" << CONSOLE_RESET << std::endl;
 
     // 检查骨架文件类型
-    std::ifstream file(skeletonPath, std::ios::binary);
+    std::ifstream file(tempSkel, std::ios::binary);
     if (!file) {
-        std::cout << "Failed to open skeleton file: " << skeletonPath << std::endl;
+        std::cout << "Failed to open skeleton file: " << tempSkel << std::endl;
         info.atlas.reset();
         return info;
     }
     std::vector<char> header(10);
     file.read(header.data(), 10);
     if (file.gcount() < 10) {
-        std::cout << "Skeleton file is too short: " << skeletonPath << std::endl;
+        std::cout << "Skeleton file is too short: " << tempSkel << std::endl;
         file.close();
         info.atlas.reset();
         return info;
@@ -70,7 +96,7 @@ SpineLoadInfo SpineAnimation::loadImpl(const std::string& atlasPath, const std::
     if (useJson) {
         SkeletonJson json(info.atlas.get());
         json.setScale(1.0f);
-        info.skeletonData.reset(json.readSkeletonDataFile(skeletonPath.c_str()));
+        info.skeletonData.reset(json.readSkeletonDataFile(tempSkel.c_str()));
         if (!info.skeletonData) {
             std::cout << CONSOLE_BRIGHT_RED << "JSON load error: " << json.getError().buffer() << CONSOLE_RESET << std::endl;
             info.atlas.reset();
@@ -79,7 +105,7 @@ SpineLoadInfo SpineAnimation::loadImpl(const std::string& atlasPath, const std::
     } else {
         SkeletonBinary binary(info.atlas.get());
         binary.setScale(1.0f);
-        info.skeletonData.reset(binary.readSkeletonDataFile(skeletonPath.c_str()));
+        info.skeletonData.reset(binary.readSkeletonDataFile(tempSkel.c_str()));
         if (!info.skeletonData) {
             std::cout << CONSOLE_BRIGHT_RED << "Binary load error: " << binary.getError().buffer() << CONSOLE_RESET << std::endl;
             info.atlas.reset();

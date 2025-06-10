@@ -64,6 +64,32 @@ void updateMenuLists() {
 // 声明全局退出标志
 bool g_appShouldExit = false;
 
+// 动态生成皮肤子菜单项
+std::vector<MenuEntry> getCurrentSkinEntries(SkinCallback skinCb) {
+    updateMenuLists();
+    std::vector<MenuEntry> skinEntries;
+    for (const auto& item : g_skinList) {
+        // 只生成 Action 类型，callback 必须有效
+        skinEntries.push_back(MenuEntry::Action(item.text, item.iconPath, [skinCb, v = item.value]() {
+            if (skinCb) skinCb(v);
+        }));
+    }
+    return skinEntries;
+}
+
+// 动态生成模型子菜单项
+std::vector<MenuEntry> getCurrentModelEntries(ModelCallback modelCb) {
+    updateMenuLists();
+    std::vector<MenuEntry> modelEntries;
+    for (const auto& item : g_modelList) {
+        // 只生成 Action 类型，callback 必须有效
+        modelEntries.push_back(MenuEntry::Action(item.text, item.iconPath, [modelCb, v = item.value]() {
+            if (modelCb) modelCb(v);
+        }));
+    }
+    return modelEntries;
+}
+
 // 构建菜单
 MenuModel buildMenuModel(
     const std::vector<MenuItemData>& skinList,
@@ -83,23 +109,9 @@ MenuModel buildMenuModel(
 ) {
     MenuModel model;
 
-    // 切换皮肤子菜单
-    std::vector<MenuEntry> skinEntries;
-    for (const auto& item : skinList) {
-        skinEntries.push_back(MenuEntry::Action(item.text, item.iconPath, [skinCb, v = item.value]() {
-            skinCb(v);
-        }));
-    }
-    model.addSubMenu("切换皮肤", "./source/icon/skin.png", skinEntries);
-
-    // 切换模型子菜单
-    std::vector<MenuEntry> modelEntries;
-    for (const auto& item : modelList) {
-        modelEntries.push_back(MenuEntry::Action(item.text, item.iconPath, [modelCb, v = item.value]() {
-            modelCb(v);
-        }));
-    }
-    model.addSubMenu("切换模型", "./source/icon/armor.png", modelEntries);
+    // 注意：这里的skinList/modelList参数仅用于初始化，实际弹出菜单时应动态刷新
+    model.addSubMenu("切换皮肤", "./source/icon/skin.png", getCurrentSkinEntries(skinCb));
+    model.addSubMenu("切换模型", "./source/icon/armor.png", getCurrentModelEntries(modelCb));
 
     model.addSeparator();
 
@@ -146,19 +158,25 @@ void switchSkin(const std::string& skinName) {
         g_modelDatabase["default"][1] = skinName;
         return;
     }
-    // 2. 基建
+    // 2. 默认
+    if (skinObj.contains("默认")) {
+        g_modelDatabase["default"][0] = skinName;
+        g_modelDatabase["default"][1] = "默认";
+        return;
+    }
+    // 3. 基建
     if (skinObj.contains("基建")) {
         g_modelDatabase["default"][0] = skinName;
         g_modelDatabase["default"][1] = "基建";
         return;
     }
-    // 3. 正面
+    // 4. 正面
     if (skinObj.contains("正面")) {
         g_modelDatabase["default"][0] = skinName;
         g_modelDatabase["default"][1] = "正面";
         return;
     }
-    // 4. 取第一个模型（排除head）
+    // 5. 取第一个模型（排除head）
     for (auto it = skinObj.begin(); it != skinObj.end(); ++it) {
         if (it.key() == "head") continue;
         g_modelDatabase["default"][0] = skinName;
@@ -176,21 +194,26 @@ void switchModel(const std::string& modelName) {
 MenuModel getDefaultMenuModel() {
     // 初始化时刷新一次
     updateMenuLists();
+
+    // 赋值全局回调
+    g_skinCallback = [](const std::string& v) {
+        printf(CONSOLE_BRIGHT_GREEN "[MENU] 切换皮肤: %s" CONSOLE_RESET "\n", v.c_str());
+        switchSkin(v);
+        updateMenuLists();
+        // 此处可加菜单刷新逻辑
+    };
+    g_modelCallback = [](const std::string& v) {
+        printf(CONSOLE_BRIGHT_GREEN "[MENU] 切换模型: %s" CONSOLE_RESET "\n", v.c_str());
+        switchModel(v);
+        updateMenuLists();
+        // 此处可加菜单刷新逻辑
+    };
+
     return buildMenuModel(
         g_skinList,
-        [](const std::string& v) {
-            printf(CONSOLE_BRIGHT_GREEN "[MENU] 切换皮肤: %s" CONSOLE_RESET "\n", v.c_str());
-            switchSkin(v);
-            updateMenuLists();
-            // 此处可加菜单刷新逻辑
-        },
+        g_skinCallback,
         g_modelList,
-        [](const std::string& v) {
-            printf(CONSOLE_BRIGHT_GREEN "[MENU] 切换模型: %s" CONSOLE_RESET "\n", v.c_str());
-            switchModel(v);
-            updateMenuLists();
-            // 此处可加菜单刷新逻辑
-        },
+        g_modelCallback,
         [] {
             printf(CONSOLE_BRIGHT_GREEN "[MENU] 窗口置顶: 开" CONSOLE_RESET "\n");
             extern HWND hwnd;
@@ -264,3 +287,7 @@ MenuModel getDefaultMenuModel() {
         }
     );
 }
+
+// 全局回调（供菜单弹出时使用）
+SkinCallback g_skinCallback;
+ModelCallback g_modelCallback;

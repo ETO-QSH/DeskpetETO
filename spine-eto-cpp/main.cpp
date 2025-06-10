@@ -1,8 +1,7 @@
 #include <spine/spine-sfml.h>
 #include <SFML/Graphics.hpp>
-#include <fstream>
 
-#include <thread>
+#include <fstream>
 
 #include "spine-eto/menu_model_utils.h"
 #include "spine-eto/mouse_events.h"

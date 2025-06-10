@@ -38,3 +38,10 @@ MenuModel buildMenuModel(
 
 // 新增：默认菜单模型初始化函数声明
 MenuModel getDefaultMenuModel();
+
+std::vector<MenuEntry> getCurrentSkinEntries(SkinCallback skinCb);
+std::vector<MenuEntry> getCurrentModelEntries(ModelCallback modelCb);
+
+// 全局回调（供菜单弹出时使用）
+extern SkinCallback g_skinCallback;
+extern ModelCallback g_modelCallback;
