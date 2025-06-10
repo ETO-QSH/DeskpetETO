@@ -29,10 +29,12 @@ WindowWorkArea g_workArea;
 extern bool g_showGlowEffect;
 
 // 全局窗口和渲染尺寸参数
-constexpr int WINDOW_WIDTH = 420;
-constexpr int WINDOW_HEIGHT = 420;
-constexpr int Y_OFFSET = 140;
+constexpr int _WINDOW_WIDTH_ = 420;
+constexpr int _WINDOW_HEIGHT_ = 420;
+constexpr int _Y_OFFSET_ = 140;
+
 constexpr int WORK_OFFSET = 0;
+constexpr int WINDOM_CROP = 0;
 
 // 全局动画参数
 constexpr int ACTIVE_LEVEL = 2;
@@ -59,6 +61,10 @@ int main() {
         dbFile >> g_modelDatabase;
     }
 
+    int WINDOW_WIDTH = (_WINDOW_WIDTH_ * 2 + WINDOM_CROP * 30) * G_SCALE;
+    int WINDOW_HEIGHT = (_WINDOW_HEIGHT_ * 2 + WINDOM_CROP * 30) * G_SCALE;
+    int Y_OFFSET = (_Y_OFFSET_ * 2 + WINDOM_CROP * 10) * G_SCALE;
+
     initWindowAndShader(WINDOW_WIDTH, WINDOW_HEIGHT, Y_OFFSET);
     initSpineModel(WINDOW_WIDTH, WINDOW_HEIGHT, Y_OFFSET, ACTIVE_LEVEL, MIX_TIME, G_SCALE);
 
@@ -68,10 +74,12 @@ int main() {
     RECT workAreaRect;
     SystemParametersInfo(SPI_GETWORKAREA, 0, &workAreaRect, 0);
 
+    int work_offset = WORK_OFFSET * 10;
+
     g_workArea.minX = workAreaRect.left;
     g_workArea.minY = workAreaRect.top;
     g_workArea.maxX = static_cast<int>(workAreaRect.right - WINDOW_WIDTH);
-    g_workArea.maxY = static_cast<int>(workAreaRect.bottom - WINDOW_HEIGHT) + Y_OFFSET - WORK_OFFSET;
+    g_workArea.maxY = static_cast<int>(workAreaRect.bottom - WINDOW_HEIGHT) + Y_OFFSET - work_offset;
     g_workArea.width = WINDOW_WIDTH;
     g_workArea.height = WINDOW_HEIGHT;
 
