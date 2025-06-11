@@ -27,3 +27,4 @@ bool isGravityEnabled();
 
 // 方向翻转接口
 void setWalkDirection();
+int getWalkDirection();

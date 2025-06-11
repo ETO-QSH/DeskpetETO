@@ -124,10 +124,15 @@ int main() {
         // 持续应用物理效果
         updateWindowPhysics(hwnd, g_windowPhysicsState, g_workArea, speed, gravity, delta);
 
-        drawable->update(delta);
+        // 防止 drawable 为 nullptr 时崩溃
+        if (drawable) {
+            drawable->update(delta);
+        }
 
         renderTexture.clear(sf::Color::Transparent);
-        renderTexture.draw(*drawable);
+        if (drawable) {
+            renderTexture.draw(*drawable);
+        }
         renderTexture.display();
 
         // 判断是否显示辉光或半透明，可以叠加
@@ -156,7 +161,9 @@ int main() {
         }
 
         window.clear(sf::Color::Transparent);
-        window.draw(*drawable);
+        if (drawable) {
+            window.draw(*drawable);
+        }
         window.display();
 
         // 限制帧率到30FPS

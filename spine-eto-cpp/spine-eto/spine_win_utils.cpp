@@ -5,9 +5,11 @@
 #include <windows.h>
 
 #include "console_colors.h"
+#include "right_click_menu.h"
 #include "spine_animation.h"
 #include "spine_win_utils.h"
 #include "queue_utils.h"
+#include "window_physics.h"
 
 #include "../dependencies/json.hpp"
 
@@ -19,6 +21,10 @@ extern nlohmann::json g_modelDatabase;
 extern bool g_showGlowEffect;
 // 声明全局交互半透明信号变量
 extern bool g_showHalfAlpha;
+
+static int g_lastWidth = 0, g_lastHeight = 0, g_lastYOffset = 0, g_lastActiveLevel = 0;
+static float g_lastMixTime = 0.0f, g_lastScale = 0.0f;
+static bool g_hasRecord = false;
 
 HRGN BitmapToRgnAlpha(HBITMAP hBmp, BYTE alphaThreshold) {
     HRGN hRgn = nullptr;
@@ -177,6 +183,16 @@ sf::RenderTexture renderTexture;
 SkeletonDrawable* drawable = nullptr;
 SpineAnimation* animSystem = nullptr;
 
+// 新增：安全释放 SpineAnimation
+void freeSpineModel() {
+    // 先置空全局 drawable，防止外部访问已释放对象
+    drawable = nullptr;
+    if (animSystem) {
+        delete animSystem;
+        animSystem = nullptr;
+    }
+}
+
 void initWindowAndShader(int width, int height, int offset) {
     window.create(sf::VideoMode(width, height), "DeskpetETO", sf::Style::None);
     window.setFramerateLimit(30); // 由60改为30
@@ -237,27 +253,36 @@ void initWindowAndShader(int width, int height, int offset) {
 }
 
 void initSpineModel(int width, int height, int yOffset, int activeLevel, float mixTime, float Scale) {
-    static SpineAnimation staticAnimSystem(width, height);
-    animSystem = &staticAnimSystem;
+    // 记录上次参数的静态变量
+    g_lastWidth = width;
+    g_lastHeight = height;
+    g_lastYOffset = yOffset;
+    g_lastActiveLevel = activeLevel;
+    g_lastMixTime = mixTime;
+    g_lastScale = Scale;
+    g_hasRecord = true;
+
+    // 先释放旧对象并置空全局指针
+    freeSpineModel();
+    // 新建 SpineAnimation
+    animSystem = new SpineAnimation(width, height);
 
     // 动态获取当前皮肤和模型的路径
     extern nlohmann::json g_modelDatabase;
-    std::string currentSkin, currentModel, atlasPath, skelPath;
+    std::string atlasPath, skelPath;
     do {
         if (!g_modelDatabase.contains("default") || !g_modelDatabase.contains("library")) break;
         const auto& def = g_modelDatabase["default"];
         if (!def.is_array() || def.size() < 2) break;
-        currentSkin = def[0];
-        currentModel = def[1];
         const auto& lib = g_modelDatabase["library"];
-        if (!lib.contains(currentSkin)) break;
-        const auto& skinObj = lib[currentSkin];
-        if (!skinObj.contains(currentModel)) break;
-        const auto& modelObj = skinObj[currentModel];
+        if (!lib.contains(def[0])) break;
+        const auto& skinObj = lib[def[0]];
+        if (!skinObj.contains(def[1])) break;
+        const auto& modelObj = skinObj[def[1]];
         if (!modelObj.contains("atlas") || !modelObj.contains("skel")) break;
         atlasPath = modelObj["atlas"].get<std::string>();
         skelPath = modelObj["skel"].get<std::string>();
-    } while (0);
+    } while (false);
 
     if (atlasPath.empty() || skelPath.empty()) {
         std::cout << CONSOLE_BRIGHT_RED << "模型路径未找到，请检查 package.json" << CONSOLE_RESET << std::endl;
@@ -270,23 +295,27 @@ void initSpineModel(int width, int height, int yOffset, int activeLevel, float m
         skelPath
     );
 
+    // 获取运动方向决定朝向
+    int walkDir = getWalkDirection();
+
     if (info.valid) {
         animSystem->clearQueue();
         animSystem->apply(info, activeLevel);
         animSystem->setGlobalMixTime(mixTime);
         animSystem->setDefaultAnimation("Move");
         animSystem->setScale(Scale);
-        animSystem->setFlip(false, false);
+        animSystem->setFlip(walkDir == -1, false);
         animSystem->setPosition(width / 2.0f, yOffset);
-
-        // 避免改变状态
-        if (!animSystem->isPlayingTemp()) {
-            animSystem->playTemp("Interact");
-        }
+        animSystem->playTemp("Interact");
 
         // 清空显示状态
         g_showGlowEffect = false;
         g_showHalfAlpha = false;
+
+        extern MenuWidgetWithHide* g_contextMenu;
+        if (g_contextMenu) {
+            setFirstTriToggleToZero(reinterpret_cast<MenuWidget*>(g_contextMenu));
+        }
 
         // 自动队列生成
         ActiveParams params = getActiveParams(activeLevel);
@@ -300,6 +329,7 @@ void initSpineModel(int width, int height, int yOffset, int activeLevel, float m
         for (const auto& anim : initialQueue) {
             animSystem->enqueueAnimation(anim);
         }
+
         // 继承Turn计数
         int turnMiss = 0;
         for (int i = end - 1; i >= start; --i) {
@@ -309,7 +339,15 @@ void initSpineModel(int width, int height, int yOffset, int activeLevel, float m
         setTurnMissCount(turnMiss);
     }
 
-    drawable = animSystem->getDrawable();
+    // 重新赋值全局 drawable 指针
+    drawable = animSystem ? animSystem->getDrawable() : nullptr;
+}
+
+// 无参数重载，自动用上次参数
+void reinitSpineModel() {
+    if (!g_hasRecord) return;
+    freeSpineModel();
+    initSpineModel(g_lastWidth, g_lastHeight, g_lastYOffset, g_lastActiveLevel, g_lastMixTime, g_lastScale);
 }
 
 // 更高效的辉光实现：只遍历一次像素，利用距离变换思想
@@ -341,11 +379,11 @@ sf::Image addGlowToAlphaEdge(const sf::Image& src, sf::Color glowColor, int glow
         }
     }
     // 反向
-    for (int y = int(size.y) - 1; y >= 0; --y) {
-        for (int x = int(size.x) - 1; x >= 0; --x) {
-            if (x + 1 < int(size.x))
+    for (int y = static_cast<int>(size.y) - 1; y >= 0; --y) {
+        for (int x = static_cast<int>(size.x) - 1; x >= 0; --x) {
+            if (x + 1 < static_cast<int>(size.x))
                 dist[x][y] = std::min(dist[x][y], dist[x + 1][y] + 1);
-            if (y + 1 < int(size.y))
+            if (y + 1 < static_cast<int>(size.y))
                 dist[x][y] = std::min(dist[x][y], dist[x][y + 1] + 1);
         }
     }

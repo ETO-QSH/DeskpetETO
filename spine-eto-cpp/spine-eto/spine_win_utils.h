@@ -23,3 +23,4 @@ sf::Image addGlowToAlphaEdge(const sf::Image& src, sf::Color glowColor, int glow
 
 void initWindowAndShader(int width, int height, int offset);
 void initSpineModel(int width, int height, int yOffset, int activeLevel, float mixTime, float Scale);
+void reinitSpineModel();

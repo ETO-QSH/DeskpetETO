@@ -156,8 +156,8 @@ void SpineAnimation::setPosition(float pos_x, float pos_y) {
 // --- 缩放和翻转控制 ---
 void SpineAnimation::setFlip(bool newFlipX, bool newFlipY) {
     static int flipCount = 0;
-    if (newFlipX) {
-        flipX = !flipX;
+    if (newFlipX || !flipCount) {
+        if (newFlipX) { flipX = !flipX; }
         const char* dir = (flipCount++ % 2 == 0) ? "Left" : "Right";
         printf(CONSOLE_BRIGHT_RED "[FLIP] Face to %s\n" CONSOLE_RESET, dir);
     }

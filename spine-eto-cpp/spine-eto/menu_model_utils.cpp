@@ -8,6 +8,7 @@
 #include "console_colors.h"
 #include "menu_model_utils.h"
 #include "spine_animation.h"
+#include "spine_win_utils.h"
 #include "window_physics.h"
 
 // 引入json头文件
@@ -204,13 +205,13 @@ MenuModel getDefaultMenuModel() {
         printf(CONSOLE_BRIGHT_GREEN "[MENU] 切换皮肤: %s" CONSOLE_RESET "\n", v.c_str());
         switchSkin(v);
         updateMenuLists();
-        // 此处可加菜单刷新逻辑
+        reinitSpineModel();
     };
     g_modelCallback = [](const std::string& v) {
         printf(CONSOLE_BRIGHT_GREEN "[MENU] 切换模型: %s" CONSOLE_RESET "\n", v.c_str());
         switchModel(v);
         updateMenuLists();
-        // 此处可加菜单刷新逻辑
+        reinitSpineModel();
     };
 
     return buildMenuModel(
