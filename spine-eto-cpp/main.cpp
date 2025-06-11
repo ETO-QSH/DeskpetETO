@@ -27,6 +27,8 @@ WindowWorkArea g_workArea;
 
 // 声明全局辉光信号变量
 extern bool g_showGlowEffect;
+// 声明全局交互半透明信号变量
+extern bool g_showHalfAlpha;
 
 // 全局窗口和渲染尺寸参数
 constexpr int _WINDOW_WIDTH_ = 420;
@@ -126,11 +128,27 @@ int main() {
         renderTexture.draw(*drawable);
         renderTexture.display();
 
-        // 判断是否显示辉光
-        if (g_showGlowEffect) {
+        // 判断是否显示辉光或半透明，可以叠加
+        if (g_showGlowEffect || g_showHalfAlpha) {
             sf::Image img = renderTexture.getTexture().copyToImage();
-            sf::Image glowImg = addGlowToAlphaEdge(img, sf::Color(255, 255, 0, 127), 4);
-            setClickThrough(hwnd, glowImg);
+            // 先处理半透明
+            if (g_showHalfAlpha) {
+                for (unsigned x = 0; x < img.getSize().x; ++x) {
+                    for (unsigned y = 0; y < img.getSize().y; ++y) {
+                        sf::Color c = img.getPixel(x, y);
+                        c.r = static_cast<sf::Uint8>(c.r * 0.5f);
+                        c.g = static_cast<sf::Uint8>(c.g * 0.5f);
+                        c.b = static_cast<sf::Uint8>(c.b * 0.5f);
+                        c.a = static_cast<sf::Uint8>(c.a * 0.5f);
+                        img.setPixel(x, y, c);
+                    }
+                }
+            }
+            // 再叠加辉光
+            if (g_showGlowEffect) {
+                img = addGlowToAlphaEdge(img, sf::Color(255, 255, 0, 127), 4);
+            }
+            setClickThrough(hwnd, img);
         } else {
             setClickThrough(hwnd, renderTexture.getTexture().copyToImage());
         }

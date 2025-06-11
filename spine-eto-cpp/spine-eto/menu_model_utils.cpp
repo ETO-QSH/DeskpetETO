@@ -18,6 +18,8 @@ extern nlohmann::json g_modelDatabase;
 
 // 全局辉光信号变量
 bool g_showGlowEffect = false;
+// 全局交互半透明信号变量
+bool g_showHalfAlpha = false;
 
 // 声明全局菜单数据
 std::vector<MenuItemData> g_skinList;
@@ -276,12 +278,13 @@ MenuModel getDefaultMenuModel() {
         },
         [] {
             printf(CONSOLE_BRIGHT_GREEN "[MENU] 交互透明" CONSOLE_RESET "\n");
+            // 设置窗口为交互穿透（全窗口点击穿透）
             extern HWND hwnd;
             LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
             exStyle |= WS_EX_TRANSPARENT;
             SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
-            // 设置窗口整体50%透明
-            SetLayeredWindowAttributes(hwnd, 0, static_cast<BYTE>(255 * 0.5), LWA_ALPHA);
+            // 设置半透明信号，主循环渲染时处理
+            g_showHalfAlpha = true;
         },
         [] {
             printf(CONSOLE_BRIGHT_GREEN "[MENU] 应用设置" CONSOLE_RESET "\n");
