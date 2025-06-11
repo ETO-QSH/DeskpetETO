@@ -9,7 +9,16 @@
 #include "spine_win_utils.h"
 #include "queue_utils.h"
 
+#include "../dependencies/json.hpp"
+
 using namespace spine;
+
+extern nlohmann::json g_modelDatabase;
+
+// 声明全局辉光信号变量
+extern bool g_showGlowEffect;
+// 声明全局交互半透明信号变量
+extern bool g_showHalfAlpha;
 
 HRGN BitmapToRgnAlpha(HBITMAP hBmp, BYTE alphaThreshold) {
     HRGN hRgn = nullptr;
@@ -231,20 +240,53 @@ void initSpineModel(int width, int height, int yOffset, int activeLevel, float m
     static SpineAnimation staticAnimSystem(width, height);
     animSystem = &staticAnimSystem;
 
+    // 动态获取当前皮肤和模型的路径
+    extern nlohmann::json g_modelDatabase;
+    std::string currentSkin, currentModel, atlasPath, skelPath;
+    do {
+        if (!g_modelDatabase.contains("default") || !g_modelDatabase.contains("library")) break;
+        const auto& def = g_modelDatabase["default"];
+        if (!def.is_array() || def.size() < 2) break;
+        currentSkin = def[0];
+        currentModel = def[1];
+        const auto& lib = g_modelDatabase["library"];
+        if (!lib.contains(currentSkin)) break;
+        const auto& skinObj = lib[currentSkin];
+        if (!skinObj.contains(currentModel)) break;
+        const auto& modelObj = skinObj[currentModel];
+        if (!modelObj.contains("atlas") || !modelObj.contains("skel")) break;
+        atlasPath = modelObj["atlas"].get<std::string>();
+        skelPath = modelObj["skel"].get<std::string>();
+    } while (0);
+
+    if (atlasPath.empty() || skelPath.empty()) {
+        std::cout << CONSOLE_BRIGHT_RED << "模型路径未找到，请检查 package.json" << CONSOLE_RESET << std::endl;
+        return;
+    }
+
     // 加载资源
     auto info = SpineAnimation::loadFromBinary(
-        "./models/铃兰/spine/春之颂/基建/build_char_358_lisa_lxh_1.atlas",
-        "./models/铃兰/spine/春之颂/基建/build_char_358_lisa_lxh_1.skel"
+        atlasPath,
+        skelPath
     );
 
     if (info.valid) {
+        animSystem->clearQueue();
         animSystem->apply(info, activeLevel);
         animSystem->setGlobalMixTime(mixTime);
         animSystem->setDefaultAnimation("Move");
         animSystem->setScale(Scale);
         animSystem->setFlip(false, false);
         animSystem->setPosition(width / 2.0f, yOffset);
-        animSystem->playTemp("Move");
+
+        // 避免改变状态
+        if (!animSystem->isPlayingTemp()) {
+            animSystem->playTemp("Interact");
+        }
+
+        // 清空显示状态
+        g_showGlowEffect = false;
+        g_showHalfAlpha = false;
 
         // 自动队列生成
         ActiveParams params = getActiveParams(activeLevel);

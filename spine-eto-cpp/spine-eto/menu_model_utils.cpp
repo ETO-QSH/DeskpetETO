@@ -13,7 +13,6 @@
 // 引入json头文件
 #include "../dependencies/json.hpp"
 
-// 声明全局数据库变量（main.cpp定义）
 extern nlohmann::json g_modelDatabase;
 
 // 全局辉光信号变量

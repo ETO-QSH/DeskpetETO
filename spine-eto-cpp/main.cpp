@@ -1,8 +1,10 @@
 #include <spine/spine-sfml.h>
 #include <SFML/Graphics.hpp>
 
+#include <iostream>
 #include <fstream>
 
+#include "spine-eto/console_colors.h"
 #include "spine-eto/menu_model_utils.h"
 #include "spine-eto/mouse_events.h"
 #include "spine-eto/right_click_menu.h"
@@ -49,7 +51,6 @@ constexpr float GRAVITY_TIME = 1.2f;
 // 全局模型数据库
 nlohmann::json g_modelDatabase;
 
-
 int main() {
     system("chcp 65001");
 
@@ -57,6 +58,7 @@ int main() {
     {
         std::ifstream dbFile("package.json");
         if (!dbFile) {
+            std::cout << CONSOLE_BRIGHT_RED << "无法打开 package.json" << CONSOLE_RESET << std::endl;
             printf("无法打开 package.json\n");
             return 1;
         }
