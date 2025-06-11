@@ -22,12 +22,14 @@ file(GLOB_RECURSE SPINE_CPP_SOURCES "${SPINE_CPP_DIR}/src/spine/*.cpp")
 file(GLOB_RECURSE SPINE_SFML_SOURCES "${SPINE_SFML_DIR}/src/spine/*.cpp")
 include_directories(${SPINE_CPP_DIR}/include ${SPINE_SFML_DIR}/src)
 
+# 添加 json.hpp 头文件目录
+include_directories(${CMAKE_SOURCE_DIR}/dependencies)
+
+# 添加spine-eto源文件
+file(GLOB_RECURSE SPINE_ETO_SOURCES "${CMAKE_SOURCE_DIR}/spine-eto/*.cpp")
+
 # 添加可执行文件，并包含spine的源文件
-add_executable(spine_eto_cpp main.cpp ${SPINE_CPP_SOURCES} ${SPINE_SFML_SOURCES}
-        spine-eto/spine_win_utils.cpp spine-eto/mouse_events.cpp
-        spine-eto/spine_animation.cpp spine-eto/window_physics.cpp
-        spine-eto/right_click_menu.cpp spine-eto/menu_model_utils.cpp
-        spine-eto/queue_utils.cpp)
+add_executable(spine_eto_cpp main.cpp ${SPINE_CPP_SOURCES} ${SPINE_SFML_SOURCES} ${SPINE_ETO_SOURCES})
 
 # 链接 SFML 库
 target_link_libraries(spine_eto_cpp PRIVATE sfml-graphics sfml-window sfml-system)

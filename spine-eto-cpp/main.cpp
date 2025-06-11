@@ -1,8 +1,10 @@
 #include <spine/spine-sfml.h>
 #include <SFML/Graphics.hpp>
 
+#include <iomanip>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include "spine-eto/console_colors.h"
 #include "spine-eto/menu_model_utils.h"
@@ -11,7 +13,7 @@
 #include "spine-eto/spine_win_utils.h"
 #include "spine-eto/window_physics.h"
 
-#include "dependencies/json.hpp"
+#include "json.hpp"
 
 // 声明全局退出标志
 extern bool g_appShouldExit;
@@ -48,8 +50,27 @@ constexpr float G_SCALE = 0.5f;
 constexpr int WALK_SPEED = 100;
 constexpr float GRAVITY_TIME = 1.2f;
 
+// 辉光字符串
+constexpr std::string GLOW_COLOR = "#ffff00";
+
 // 全局模型数据库
 nlohmann::json g_modelDatabase;
+
+// 解析 #RRGGBB 或 #RRGGBBAA 字符串为 sf::Color
+sf::Color parseHexColor(const std::string& hex) {
+    unsigned int r = 0, g = 0, b = 0, a = 255;
+    if (hex.size() == 7 && hex[0] == '#') {
+        std::istringstream(hex.substr(1, 2)) >> std::hex >> r;
+        std::istringstream(hex.substr(3, 2)) >> std::hex >> g;
+        std::istringstream(hex.substr(5, 2)) >> std::hex >> b;
+    } else if (hex.size() == 9 && hex[0] == '#') {
+        std::istringstream(hex.substr(1, 2)) >> std::hex >> r;
+        std::istringstream(hex.substr(3, 2)) >> std::hex >> g;
+        std::istringstream(hex.substr(5, 2)) >> std::hex >> b;
+        std::istringstream(hex.substr(7, 2)) >> std::hex >> a;
+    }
+    return sf::Color(static_cast<sf::Uint8>(r), static_cast<sf::Uint8>(g), static_cast<sf::Uint8>(b), static_cast<sf::Uint8>(a));
+}
 
 int main() {
     system("chcp 65001");
@@ -153,7 +174,7 @@ int main() {
             }
             // 再叠加辉光
             if (g_showGlowEffect) {
-                img = addGlowToAlphaEdge(img, sf::Color(255, 255, 0, 127), 4);
+                img = addGlowToAlphaEdge(img, parseHexColor(GLOW_COLOR), 4);
             }
             setClickThrough(hwnd, img);
         } else {

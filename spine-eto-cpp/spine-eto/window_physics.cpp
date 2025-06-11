@@ -23,7 +23,7 @@ struct WindowWorkArea {
     int width, height;
 };
 
-// 新增步行状态
+// 步行状态
 static bool walkEnabled = true;
 static int walkDirection = 1; // 1=右，-1=左
 
@@ -44,7 +44,7 @@ int getWalkDirection() {
     return walkDirection;
 }
 
-// 新增：重力开关
+// 重力开关
 static bool gravityEnabled = true;
 void setGravityEnabled(bool enabled) {
     gravityEnabled = enabled;

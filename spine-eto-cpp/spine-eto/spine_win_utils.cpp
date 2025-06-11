@@ -11,7 +11,7 @@
 #include "queue_utils.h"
 #include "window_physics.h"
 
-#include "../dependencies/json.hpp"
+#include "json.hpp"
 
 using namespace spine;
 

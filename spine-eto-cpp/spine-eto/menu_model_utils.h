@@ -36,7 +36,7 @@ MenuModel buildMenuModel(
     SimpleCallback onQuit
 );
 
-// 新增：默认菜单模型初始化函数声明
+// 默认菜单模型初始化函数声明
 MenuModel getDefaultMenuModel();
 
 std::vector<MenuEntry> getCurrentSkinEntries(SkinCallback skinCb);

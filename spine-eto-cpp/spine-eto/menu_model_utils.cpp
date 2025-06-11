@@ -11,8 +11,7 @@
 #include "spine_win_utils.h"
 #include "window_physics.h"
 
-// 引入json头文件
-#include "../dependencies/json.hpp"
+#include "json.hpp"
 
 extern nlohmann::json g_modelDatabase;
 
