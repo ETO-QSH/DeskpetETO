@@ -87,8 +87,10 @@ std::vector<std::string> generateRandomAnimQueue(
                 { chosen = "Move"; sumMove += moveDur; }
             else if (relaxGap >= specialGap)
                 { chosen = "Relax"; sumRelax += relaxDur; }
-            else
+            else if (hasSpecial) // 只有有Special才允许
                 { chosen = specialName; sumSpecial += specialDur; specialCooldown = specialDur; }
+            else
+                { chosen = "Move"; sumMove += moveDur; } // fallback到Move
         }
         anims.push_back(chosen);
 
