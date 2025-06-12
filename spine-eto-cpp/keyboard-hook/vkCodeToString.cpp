@@ -2,7 +2,7 @@
 
 #include "vkCodeToString.h"
 
-// 主表实现
+// 主表实现 (https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes)
 const VkTable& getMainVkTable() {
     static VkTable vkMap = {
 
