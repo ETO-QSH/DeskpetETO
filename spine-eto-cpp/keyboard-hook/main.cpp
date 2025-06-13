@@ -71,7 +71,7 @@ int main() {
         std::cerr << "中文字体加载失败" << std::endl;
         return 1;
     }
-    if (!fontEn.loadFromFile("D:/Desktop/Desktop/keyboard-hook/source/font/Minecraftia.ttf")) {
+    if (!fontEn.loadFromFile("D:/Desktop/Desktop/keyboard-hook/source/font/MinecraftiaETO.ttf")) {
         std::cerr << "英文字体加载失败" << std::endl;
         return 1;
     }
