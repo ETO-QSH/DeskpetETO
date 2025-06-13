@@ -1,6 +1,6 @@
 #include <windows.h>
 
-#include "vkCodeToString.h"
+#include "vk_code_2_string.h"
 
 // 主表实现 (https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes)
 const VkTable& getMainVkTable() {
@@ -22,8 +22,8 @@ const VkTable& getMainVkTable() {
 
         // Unassigned: 0x0E ~ 0x0F
 
-        // Shift键和Control键和Alt键（0x10 ~ 0x12）
-        {VK_SHIFT, "Shift"}, {VK_CONTROL, "Control"}, {VK_MENU, "Alt"},
+        // Shift键和Ctrl键和Alt键（0x10 ~ 0x12）
+        {VK_SHIFT, "Shift"}, {VK_CONTROL, "Ctrl"}, {VK_MENU, "Alt"},
 
         // Pause键和CapsLock键（0x13 ~ 0x14）
         {VK_PAUSE, "Pause"}, {VK_CAPITAL, "CapsLock"},
@@ -53,8 +53,8 @@ const VkTable& getMainVkTable() {
         {VK_HELP, "Help"},
 
         // 主键盘数字区（0x30 ~ 0x39）
-        {'1', "1"}, {'2', "2"}, {'3', "3"}, {'4', "4"}, {'5', "5"},
-        {'6', "6"}, {'7', "7"}, {'8', "8"}, {'9', "9"}, {'0', "0"},
+        {'1', "1!"}, {'2', "2@"}, {'3', "3#"}, {'4', "4$"}, {'5', "5%"},
+        {'6', "6^"}, {'7', "7&"}, {'8', "8*"}, {'9', "9("}, {'0', "0)"},
 
         // Reserved: 0x3A ~ 0x40
 
@@ -103,7 +103,7 @@ const VkTable& getMainVkTable() {
 
         // 重要功能键区（0xA0 ~ 0xA5）
         {VK_LSHIFT, "LShift"}, {VK_RSHIFT, "RShift"},
-        {VK_LCONTROL, "LControl"}, {VK_RCONTROL, "RControl"},
+        {VK_LCONTROL, "LCtrl"}, {VK_RCONTROL, "RCtrl"},
         {VK_LMENU, "LAlt"}, {VK_RMENU, "RAlt"},
 
         // 浏览器控制键区（0xA6 ~ 0xAC）
@@ -194,8 +194,8 @@ const VkTable& directionVkTables() {
 // 主键盘数字键分表
 const VkTable& mainNumVkTables() {
     static VkTable table = {
-        {'1', "1"}, {'2', "2"}, {'3', "3"}, {'4', "4"}, {'5', "5"},
-        {'6', "6"}, {'7', "7"}, {'8', "8"}, {'9', "9"}, {'0', "0"}
+        {'1', "1!"}, {'2', "2@"}, {'3', "3#"}, {'4', "4$"}, {'5', "5%"},
+        {'6', "6^"}, {'7', "7&"}, {'8', "8*"}, {'9', "9("}, {'0', "0)"}
     };
     return table;
 }
@@ -270,7 +270,7 @@ const VkTable& modifyVkTable1() {
         {VK_LWIN, "LWin"}, {VK_RWIN, "RWin"}, {VK_APPS, "Apps"},
         {VK_MENU, "Alt"},{VK_LMENU, "LAlt"}, {VK_RMENU, "RAlt"},
         {VK_SHIFT, "Shift"}, {VK_LSHIFT, "LShift"}, {VK_RSHIFT, "RShift"},
-        {VK_CONTROL, "Control"}, {VK_LCONTROL, "LControl"}, {VK_RCONTROL, "RControl"}
+        {VK_CONTROL, "Ctrl"}, {VK_LCONTROL, "LCtrl"}, {VK_RCONTROL, "RCtrl"}
     };
     return table;
 }
