@@ -15,12 +15,13 @@ link_directories(${SFML_DIR}/lib)
 set(SFML_DLL_DIR "${SFML_DIR}/bin")
 file(GLOB SFML_DLLS "${SFML_DLL_DIR}/*.dll")
 
-add_executable(keyboard_hook main.cpp
-        vk_code_2_string.cpp
-        keyboard_hook_tool.cpp)
+add_executable(keyboard_hook main.cpp vk_code_2_string.cpp keyboard_hook_tool.cpp)
 
 # 链接 SFML 库
 target_link_libraries(keyboard_hook PRIVATE sfml-graphics sfml-window sfml-system)
+
+# 链接 Imm32 库
+target_link_libraries(keyboard_hook PRIVATE Imm32)
 
 # 将 SFML 的 DLL 文件复制到构建目录
 add_custom_command(TARGET keyboard_hook POST_BUILD COMMAND ${CMAKE_COMMAND}

@@ -67,3 +67,6 @@ void cleanReleasedKeys(
     const std::set<DWORD>& pressedCopy,
     std::map<DWORD, sf::Time>& keyDownAbsTime
 );
+
+// 判断当前输入法是否为中文输入模式
+bool IsChineseInput();

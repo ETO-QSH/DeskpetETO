@@ -20,35 +20,29 @@ extern bool g_scrollOn;
 // 全局符号映射表
 static std::map<char, char> g_symbolMap = { };
 
-// 符号映射表-CN
-static std::map<char, char> g_symbolMapCN = {
-//    {';', '；'}, {':', '：'},
-//    {',', '，'}, {'<', '《'},
-//    {'.', '。'}, {'>', '》'},
-//    {'/', '、'}, {'?', '？'},
-//    {'\'', '、'}, {'"', '“'},
-//    {'[', '【'}, {']', '】'},
-//    {'{', '{'}, {'}', '}'},
-//    {'-', '-'}, {'_', '—'},
-//    {'=', '='}, {'+', '+'},
-//    {'`', '·'}, {'~', '~'},
-};
-
 // 符号映射表-EN
 static std::map<char, char> g_symbolMapEN = { };
 
+// 符号映射表-CN
+static std::map<char, char> g_symbolMapCN = {
+    {'$', '￥'}, {'`', '·'},
+};
+
+// 判断当前输入法是否为中文输入模式
+bool IsChineseInput() {
+    HWND hIME = ImmGetDefaultIMEWnd(GetForegroundWindow());
+    LRESULT status = SendMessage(hIME, WM_IME_CONTROL, 0x0005, 0);
+    return status ? true : false;
+}
+
 // 根据输入法HKL自动切换符号映射表
 void setSymbolMap() {
-    char name[KL_NAMELENGTH] = {};
-    if (GetKeyboardLayoutNameA(name)) {
-        std::string imeName(name);
-        if (imeName == "00000804") {
-            // 简体中文输入法
-            g_symbolMap = g_symbolMapCN;
-        } else {
-            // 英文不做映射
-            g_symbolMap = g_symbolMapEN;
-        }
+    if (IsChineseInput()) {
+        // 中文输入法
+        g_symbolMap = g_symbolMapCN;
+    } else {
+        // 英文或其它
+        g_symbolMap = g_symbolMapEN;
     }
 }
 
