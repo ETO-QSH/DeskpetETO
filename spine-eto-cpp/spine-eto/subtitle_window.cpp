@@ -6,8 +6,8 @@
 #include <thread>
 #include <windows.h>
 
-#include "spine-eto/keyboard_hook_tool.h"
-#include "spine-eto/spine_win_utils.h"
+#include "keyboard_hook_tool.h"
+#include "spine_win_utils.h"
 
 // 全局变量
 std::set<DWORD> g_pressedKeys;
@@ -58,15 +58,33 @@ HKL getCurrentInputMethod() {
     return GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), nullptr));
 }
 
-int main() {
-    system("chcp 65001");
+// 全局弹幕窗口指针，供外部访问
+HWND g_subtitleHwnd = nullptr;
+
+HWND getSubtitleHwnd() {
+    return g_subtitleHwnd;
+}
+
+static std::thread g_subtitleThread;
+static bool g_subtitleExit = false;
+
+void closeSubtitleWindow() {
+    g_subtitleExit = true;
+    if (g_subtitleThread.joinable()) g_subtitleThread.join();
+    g_subtitleExit = false;
+    g_subtitleHwnd = nullptr;
+}
+
+void subtitleWindowThread(float SUBTITLE_DURATION, size_t MAX_SUBTITLES, int modeWidth) {
+    int modeHeight = 600;
 
     updateLockStates(); // 启动时获取一次锁定键状态
 
     std::thread th(hookThread); // 启动钩子线程
 
-    sf::RenderWindow window(sf::VideoMode(450, 600), "Keyboard Hook Example (Global)", sf::Style::None);
-    window.setFramerateLimit(60);
+    sf::RenderWindow window(sf::VideoMode(modeWidth, modeHeight), "Keyboard Hook", sf::Style::None);
+    g_subtitleHwnd = window.getSystemHandle();
+    window.setFramerateLimit(30);
 
     // 设置为无头工具窗口和半透明
     HWND hwnd = window.getSystemHandle();
@@ -80,17 +98,15 @@ int main() {
     // 加载字体（fontZh为中文字体，fontEn为英文字体）
     if (!fontZh.loadFromFile("./source/font/Lolita.ttf")) {
         std::cerr << "中文字体加载失败" << std::endl;
-        return 1;
+        return;
     }
     if (!fontEn.loadFromFile("./source/font/MinecraftiaETO.ttf")) {
         std::cerr << "英文字体加载失败" << std::endl;
-        return 1;
+        return;
     }
 
-    // 字幕相关
+    // 字幕队列
     std::deque<SubtitleEntry> subtitles;
-    const float SUBTITLE_DURATION = 2.5f;
-    const size_t MAX_SUBTITLES = 10;
     sf::Clock clock;
 
     std::map<DWORD, sf::Time> keyDownAbsTime;
@@ -102,9 +118,9 @@ int main() {
     sf::Vector2i dragStartWindow;
 
     // 保持窗口置顶
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    SetWindowPos(g_subtitleHwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 
-    while (window.isOpen()) {
+    while (window.isOpen() && !g_subtitleExit) {
         sf::Event event{};
         std::string subtitleText;
 
@@ -208,5 +224,12 @@ int main() {
         window.draw(spr);
         window.display();
     }
-    return 0;
+    g_subtitleHwnd = nullptr;
+}
+
+void launchSubtitleWindow(float subtitleDuration, size_t maxSubtitles, int modeWidth) {
+    closeSubtitleWindow();
+    g_subtitleThread = std::thread([=] {
+        subtitleWindowThread(subtitleDuration, maxSubtitles, modeWidth);
+    });
 }

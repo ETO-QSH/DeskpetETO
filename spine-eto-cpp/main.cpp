@@ -5,12 +5,14 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <thread>
 
 #include "spine-eto/console_colors.h"
 #include "spine-eto/menu_model_utils.h"
 #include "spine-eto/mouse_events.h"
 #include "spine-eto/right_click_menu.h"
 #include "spine-eto/spine_win_utils.h"
+#include "spine-eto/subtitle_window.h"
 #include "spine-eto/window_physics.h"
 
 #include "json.hpp"
@@ -72,7 +74,7 @@ sf::Color parseHexColor(const std::string& hex) {
     return sf::Color(static_cast<sf::Uint8>(r), static_cast<sf::Uint8>(g), static_cast<sf::Uint8>(b), static_cast<sf::Uint8>(a));
 }
 
-int l_main() {
+int main() {
     system("chcp 65001");
 
     // 读取 package.json 到全局变量
@@ -114,6 +116,28 @@ int l_main() {
     font.loadFromFile("./source/font/Lolita.ttf");
     g_contextMenu = initMenu(model, font, []{ /* 可选：菜单关闭回调 */ });
     g_mainWindow = &window;
+
+    // 启动弹幕窗口并放置到右下角
+    launchSubtitleWindow(2.5f, 10, 450);
+
+    // 放置到右下角
+    HWND subtitleHwnd;
+    {
+        // 等待窗口创建
+        for (int i = 0; i < 50; ++i) {
+            subtitleHwnd = getSubtitleHwnd();
+            if (subtitleHwnd) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
+        if (subtitleHwnd) {
+            RECT workArea;
+            SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
+            int width = 450, height = 600;
+            int x = workArea.right - width;
+            int y = workArea.bottom - height;
+            SetWindowPos(subtitleHwnd, HWND_TOPMOST, x, y, width, height, SWP_SHOWWINDOW);
+        }
+    }
 
     float speed = WALK_SPEED * G_SCALE;
     int gravity = (g_workArea.maxY - g_workArea.minY) * 2 / (GRAVITY_TIME * GRAVITY_TIME);
@@ -194,6 +218,8 @@ int l_main() {
         }
     }
 
+    // 程序退出前关闭弹幕窗口
+    closeSubtitleWindow();
     // 程序退出前再次确保所有菜单线程已释放
     extern void forceCloseMenuWindow();
     forceCloseMenuWindow();

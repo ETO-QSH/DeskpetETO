@@ -29,7 +29,7 @@ include_directories(${CMAKE_SOURCE_DIR}/dependencies)
 file(GLOB_RECURSE SPINE_ETO_SOURCES "${CMAKE_SOURCE_DIR}/spine-eto/*.cpp")
 
 # 添加可执行文件，并包含spine的源文件
-add_executable(spine_eto_cpp subtitle_test.cpp main.cpp ${SPINE_CPP_SOURCES} ${SPINE_SFML_SOURCES} ${SPINE_ETO_SOURCES})
+add_executable(spine_eto_cpp main.cpp ${SPINE_CPP_SOURCES} ${SPINE_SFML_SOURCES} ${SPINE_ETO_SOURCES})
 
 # 链接 SFML 库
 target_link_libraries(spine_eto_cpp PRIVATE sfml-graphics sfml-window sfml-system)
