@@ -40,22 +40,28 @@ void handleNewlyPressed(
 );
 
 void drawHistorySubtitles(
-    sf::RenderWindow& window,
+    sf::RenderTarget& window,
     const std::deque<SubtitleEntry>& subtitles,
     const sf::Font& fontZh,
     const sf::Font& fontEn,
     float baseY,
-    float SUBTITLE_DURATION
+    float SUBTITLE_DURATION,
+    float subtitleMargin,
+    float subtitleWidth,
+    float subtitleLeft
 );
 
 void drawCurrentBar(
-    sf::RenderWindow& window,
+    sf::RenderTarget& window,
     const sf::Font& fontZh,
     const sf::Font& fontEn,
-    const std::set<DWORD>& pressedCopy
+    const std::set<DWORD>& pressedCopy,
+    float subtitleWidth,
+    float subtitleHeight,
+    float subtitleLeft
 );
 
-void updateAndCleanSubtitles(std::deque<SubtitleEntry>& subtitles, sf::Clock& clock, float SUBTITLE_DURATION);
+void updateAndCleanSubtitles(std::deque<SubtitleEntry>& subtitles, sf::Clock& clock);
 
 void updateKeyDownAbsTime(
     const std::set<DWORD>& pressedCopy,

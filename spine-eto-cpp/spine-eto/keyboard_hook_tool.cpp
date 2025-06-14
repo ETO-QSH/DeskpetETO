@@ -46,6 +46,57 @@ void setSymbolMap() {
     }
 }
 
+// 圆角矩形辅助函数
+class RoundedRectangleShape : public sf::Shape {
+public:
+    explicit RoundedRectangleShape(const sf::Vector2f& size, float radius = 10.f, std::size_t cornerPointCount = 8)
+        : m_size(size), m_radius(radius), m_cornerPointCount(cornerPointCount) {
+        update();
+    }
+
+    void setSize(const sf::Vector2f& size) { m_size = size; update(); }
+    void setCornersRadius(float radius) { m_radius = radius; update(); }
+    void setCornerPointCount(std::size_t count) { m_cornerPointCount = count; update(); }
+
+    std::size_t getPointCount() const override {
+        return m_cornerPointCount * 4;
+    }
+
+    sf::Vector2f getPoint(std::size_t index) const override {
+        std::size_t corner = index / m_cornerPointCount;
+        float theta = static_cast<float>(index % m_cornerPointCount) / static_cast<float>(m_cornerPointCount) * 3.1415926f / 2.f;
+        float x, y;
+        switch (corner) {
+            case 0: // top-left
+                x = m_radius * (1 - std::cos(theta));
+            y = m_radius * (1 - std::sin(theta));
+            break;
+            case 1: // top-right
+                x = m_size.x - m_radius + m_radius * std::sin(theta);
+            y = m_radius * (1 - std::cos(theta));
+            break;
+            case 2: // bottom-right
+                x = m_size.x - m_radius + m_radius * std::cos(theta);
+            y = m_size.y - m_radius + m_radius * std::sin(theta);
+            break;
+            case 3: // bottom-left
+                x = m_radius * (1 - std::sin(theta));
+            y = m_size.y - m_radius + m_radius * std::cos(theta);
+            break;
+            default: // 防御性编程，返回左上角
+                x = 0;
+            y = 0;
+            break;
+        }
+        return { x, y };
+    }
+
+private:
+    sf::Vector2f m_size;
+    float m_radius;
+    std::size_t m_cornerPointCount;
+};
+
 // 工具函数：历史栏符号处理（适用于interVkTables和mainNumVkTables）
 sf::String symbolForHistory(
     const std::string& n,
@@ -267,7 +318,7 @@ void handleNewlyPressed(
     }
 
     for (DWORD vk : newlyPressed) {
-        std::set<DWORD> single{vk};
+        std::set single{vk};
         if ((vk == VK_CAPITAL || vk == VK_NUMLOCK || vk == VK_SCROLL) && pressedCopy.size() == 1) {
             std::string histText = comboToString(single, true).toAnsiString();
             subtitles.push_back({histText, SUBTITLE_DURATION});
@@ -314,48 +365,104 @@ void handleNewlyPressed(
     }
 }
 
+// 辅助函数：根据最大宽度裁剪字符串，超出时末尾加...
+sf::String truncateTextToFitWidth(const sf::Text& textTemplate, const sf::String& str, float maxWidth) {
+    sf::Text temp = textTemplate;
+    temp.setString(str);
+    if (temp.getLocalBounds().width <= maxWidth) {
+        return str;
+    }
+    sf::String ellipsis = L"...";
+    temp.setString(ellipsis);
+    sf::String result;
+    for (std::size_t i = 0; i < str.getSize(); ++i) {
+        result += str[i];
+        temp.setString(result + ellipsis);
+        if (temp.getLocalBounds().width > maxWidth) {
+            if (i > 0) result.erase(result.getSize() - 1, 1);
+            break;
+        }
+    }
+    return result + ellipsis;
+}
+
 // 绘制历史字幕
 void drawHistorySubtitles(
-    sf::RenderWindow& window,
+    sf::RenderTarget& window,
     const std::deque<SubtitleEntry>& subtitles,
     const sf::Font& fontZh,
     const sf::Font& fontEn,
     float baseY,
-    float SUBTITLE_DURATION
+    float SUBTITLE_DURATION,
+    float subtitleMargin,
+    float subtitleWidth,
+    float subtitleLeft
 ) {
     int idx = 0;
+    // 让上面的字幕更透明且先消失
     for (auto it = subtitles.rbegin(); it != subtitles.rend(); ++it, ++idx) {
-        std::string enText = it->text;
-        float y = baseY - static_cast<float>(idx) * 32;
+        float alpha = std::clamp(it->timer / SUBTITLE_DURATION, 0.f, 1.f);
 
+        // 计算实际文本高度
         sf::Text textZh;
         textZh.setFont(fontZh);
-        textZh.setCharacterSize(22);
-        textZh.setFillColor(sf::Color(255, 255, 255));
-        textZh.setOutlineColor(sf::Color(0, 0, 0));
-        textZh.setOutlineThickness(2);
+        textZh.setCharacterSize(20);
         textZh.setString(L"历史： ");
-        textZh.setPosition(20, y);
+
+        sf::Text textEn;
+        textEn.setFont(fontEn);
+        textEn.setCharacterSize(20);
+        textEn.setString(sf::String::fromUtf8(it->text.begin(), it->text.end()));
+
+        float textHeight = textZh.getLocalBounds().height + 6;
+        float bgHeight = textHeight + 9.f; // 适当加padding
+        float yPos = baseY - idx * (bgHeight + subtitleMargin);
+
+        // 使用圆角矩形
+        RoundedRectangleShape bg({subtitleWidth, bgHeight}, 8.f, 16);
+        bg.setPosition(0.f, yPos);
+        bg.setFillColor(sf::Color(0, 0, 0, static_cast<sf::Uint8>(180 * alpha)));
+        window.draw(bg);
+    }
+
+    idx = 0;
+    for (auto it = subtitles.rbegin(); it != subtitles.rend(); ++it, ++idx) {
+        sf::Text textZh;
+        textZh.setFont(fontZh);
+        textZh.setCharacterSize(20);
+        textZh.setString(L"历史： ");
+
+        sf::Text textEn;
+        textEn.setFont(fontEn);
+        textEn.setCharacterSize(20);
+        textEn.setString(sf::String::fromUtf8(it->text.begin(), it->text.end()));
+        float textHeight = textZh.getLocalBounds().height + 6;
+        float bgHeight = textHeight + 9.f;
+        float yPos = baseY - idx * (bgHeight + subtitleMargin);
 
         float ratio = std::max(0.f, it->timer / SUBTITLE_DURATION);
         float alpha = 255.f * std::log1p(5 * ratio) / std::log1p(5.f);
         auto a = static_cast<sf::Uint8>(alpha);
+
         textZh.setFillColor(sf::Color(255, 255, 255, a));
         textZh.setOutlineColor(sf::Color(0, 0, 0, a));
+        textZh.setOutlineThickness(3);
+        textZh.setPosition(subtitleLeft, yPos + 4);
 
         window.draw(textZh);
 
-        if (!enText.empty()) {
-            sf::Text textEn;
-            textEn.setFont(fontEn);
-            textEn.setCharacterSize(22);
+        if (!it->text.empty()) {
             textEn.setFillColor(sf::Color(255, 255, 255, a));
             textEn.setOutlineColor(sf::Color(0, 0, 0, a));
-            textEn.setOutlineThickness(2);
+            textEn.setOutlineThickness(3);
+            float offsetX2 = textZh.getPosition().x + (textZh.getLocalBounds().width + textZh.getLocalBounds().left);
 
-            float offsetX = textZh.getPosition().x + (textZh.getLocalBounds().width + textZh.getLocalBounds().left);
-            textEn.setPosition(offsetX, y);
-            textEn.setString(sf::String::fromUtf8(enText.begin(), enText.end()));
+            // 限制英文文本宽度
+            float maxEnWidth = subtitleWidth - offsetX2 - 10.f;
+            sf::String enStr = sf::String::fromUtf8(it->text.begin(), it->text.end());
+            textEn.setString(truncateTextToFitWidth(textEn, enStr, maxEnWidth));
+
+            textEn.setPosition(offsetX2, yPos + 9);
             window.draw(textEn);
         }
     }
@@ -363,32 +470,56 @@ void drawHistorySubtitles(
 
 // 绘制当前栏
 void drawCurrentBar(
-    sf::RenderWindow& window,
+    sf::RenderTarget& window,
     const sf::Font& fontZh,
     const sf::Font& fontEn,
-    const std::set<DWORD>& pressedCopy
+    const std::set<DWORD>& pressedCopy,
+    float subtitleWidth,
+    float subtitleHeight,
+    float subtitleLeft
 ) {
+    // 当前栏高度提升为1.2倍
+    float currentBarHeight = subtitleHeight * 1.2f;
+    float currentBarY = static_cast<float>(window.getSize().y) - currentBarHeight;
+
+    // 使用圆角矩形
+    RoundedRectangleShape currentBarBg({subtitleWidth, currentBarHeight}, 8.f, 16);
+    currentBarBg.setPosition(0.f, currentBarY);
+    currentBarBg.setFillColor(sf::Color(0, 0, 0, 191));
+    window.draw(currentBarBg);
+
     sf::Text currentZh;
     currentZh.setFont(fontZh);
-    currentZh.setCharacterSize(28);
+    currentZh.setCharacterSize(24);
     currentZh.setFillColor(sf::Color::White);
-    currentZh.setPosition(20, static_cast<float>(window.getSize().y) - 45);
+
+    // 垂直居中
+    float zhOffsetY = currentBarY + (currentBarHeight - currentZh.getLocalBounds().height) / 2.f - 15.f;
+    currentZh.setPosition(subtitleLeft, zhOffsetY);
     currentZh.setString(L"当前： ");
+    currentZh.setOutlineColor(sf::Color(0, 0, 0, 191));
+    currentZh.setOutlineThickness(3);
 
     sf::Text currentEn;
     currentEn.setFont(fontEn);
-    currentEn.setCharacterSize(28);
+    currentEn.setCharacterSize(24);
     currentEn.setFillColor(sf::Color::White);
+
     float offsetX = currentZh.getPosition().x + currentZh.getLocalBounds().width;
-    currentEn.setPosition(offsetX, static_cast<float>(window.getSize().y) - 45);
-    currentEn.setString(pressedCopy.empty() ? "" : comboToString(pressedCopy, false));
+    // 限制当前栏英文文本宽度
+    float maxEnWidth = subtitleWidth - offsetX - 10.f;
+    sf::String enStr = pressedCopy.empty() ? "" : comboToString(pressedCopy, false);
+    currentEn.setString(truncateTextToFitWidth(currentEn, enStr, maxEnWidth));
+    currentEn.setPosition(offsetX, zhOffsetY + 5.f);
+    currentEn.setOutlineColor(sf::Color(0, 0, 0, 191));
+    currentEn.setOutlineThickness(3);
 
     window.draw(currentZh);
     window.draw(currentEn);
 }
 
 // 更新时间并移除过期字幕
-void updateAndCleanSubtitles(std::deque<SubtitleEntry>& subtitles, sf::Clock& clock, float SUBTITLE_DURATION) {
+void updateAndCleanSubtitles(std::deque<SubtitleEntry>& subtitles, sf::Clock& clock) {
     float dt = clock.restart().asSeconds();
     for (auto& entry : subtitles) {
         entry.timer -= dt;

@@ -72,7 +72,7 @@ sf::Color parseHexColor(const std::string& hex) {
     return sf::Color(static_cast<sf::Uint8>(r), static_cast<sf::Uint8>(g), static_cast<sf::Uint8>(b), static_cast<sf::Uint8>(a));
 }
 
-int main() {
+int l_main() {
     system("chcp 65001");
 
     // 读取 package.json 到全局变量

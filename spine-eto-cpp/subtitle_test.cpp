@@ -1,11 +1,13 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 
+#include <cmath>
 #include <iostream>
 #include <thread>
 #include <windows.h>
 
-#include "keyboard_hook_tool.h"
+#include "spine-eto/keyboard_hook_tool.h"
+#include "spine-eto/spine_win_utils.h" // 新增，包含 setClickThrough
 
 // 全局变量
 std::set<DWORD> g_pressedKeys;
@@ -51,7 +53,7 @@ void hookThread() {
     UnhookWindowsHookEx(hhk);
 }
 
-// 新增：检查输入法状态（仅支持Windows，获取当前输入法HKL）
+// 检查输入法状态（仅支持Windows，获取当前输入法HKL）
 HKL getCurrentInputMethod() {
     return GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), nullptr));
 }
@@ -63,15 +65,24 @@ int main() {
 
     std::thread th(hookThread); // 启动钩子线程
 
-    sf::RenderWindow window(sf::VideoMode(600, 400), "Keyboard Hook Example (Global)");
+    sf::RenderWindow window(sf::VideoMode(450, 600), "Keyboard Hook Example (Global)", sf::Style::None);
+    window.setFramerateLimit(60);
+
+    // 设置为无头工具窗口和半透明
+    HWND hwnd = window.getSystemHandle();
+    LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+    exStyle |= WS_EX_LAYERED | WS_EX_TOOLWINDOW;
+    exStyle &= ~WS_EX_APPWINDOW;
+    SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
+
     sf::Font fontZh, fontEn;
 
     // 加载字体（fontZh为中文字体，fontEn为英文字体）
-    if (!fontZh.loadFromFile("D:/Desktop/Desktop/keyboard-hook/source/font/Lolita.ttf")) {
+    if (!fontZh.loadFromFile("./source/font/Lolita.ttf")) {
         std::cerr << "中文字体加载失败" << std::endl;
         return 1;
     }
-    if (!fontEn.loadFromFile("D:/Desktop/Desktop/keyboard-hook/source/font/MinecraftiaETO.ttf")) {
+    if (!fontEn.loadFromFile("./source/font/MinecraftiaETO.ttf")) {
         std::cerr << "英文字体加载失败" << std::endl;
         return 1;
     }
@@ -85,13 +96,50 @@ int main() {
     std::map<DWORD, sf::Time> keyDownAbsTime;
     sf::Clock globalClock;
 
+    // 拖动相关变量
+    bool dragging = false;
+    sf::Vector2i dragStartMouse;
+    sf::Vector2i dragStartWindow;
+
+    // 保持窗口置顶
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
     while (window.isOpen()) {
         sf::Event event{};
         std::string subtitleText;
 
+        float baseY = static_cast<float>(window.getSize().y) - 80;
+        float subtitleMargin = 6.f;
+        float subtitleHeight = 32.f;
+        float subtitleLeft = 10.f;
+        float subtitleWidth = static_cast<float>(window.getSize().x);
+
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
+
+            // 拖动当前栏实现窗口移动
+            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+                float currentBarHeight = subtitleHeight * 1.2f;
+                float currentBarY = static_cast<float>(window.getSize().y) - currentBarHeight;
+                sf::FloatRect currentBarRect(0.f, currentBarY, static_cast<float>(window.getSize().x), currentBarHeight);
+                if (currentBarRect.contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
+                    dragging = true;
+                    dragStartMouse = sf::Mouse::getPosition();
+                    RECT winRect;
+                    GetWindowRect(hwnd, &winRect);
+                    dragStartWindow = sf::Vector2i(winRect.left, winRect.top);
+                }
+            }
+            if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
+                dragging = false;
+            }
+            if (event.type == sf::Event::MouseMoved && dragging) {
+                sf::Vector2i mouseNow = sf::Mouse::getPosition();
+                sf::Vector2i delta = mouseNow - dragStartMouse;
+                SetWindowPos(hwnd, HWND_TOPMOST, dragStartWindow.x + delta.x, dragStartWindow.y + delta.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+            }
         }
 
         // 获取全局按键状态
@@ -131,18 +179,33 @@ int main() {
         prevPressed = pressedCopy;
 
         // 更新时间并移除过期字幕
-        updateAndCleanSubtitles(subtitles, clock, SUBTITLE_DURATION);
+        updateAndCleanSubtitles(subtitles, clock);
 
         // 可视化显示
-        window.clear(sf::Color::Black);
+        window.clear(sf::Color::Transparent);
 
-        // 绘制历史字幕
-        float baseY = static_cast<float>(window.getSize().y) - 80;
-        drawHistorySubtitles(window, subtitles, fontZh, fontEn, baseY, SUBTITLE_DURATION);
+        // 绘制到离屏纹理
+        static sf::RenderTexture renderTexture;
+        if (renderTexture.getSize() != window.getSize())
+            renderTexture.create(window.getSize().x, window.getSize().y);
+        renderTexture.clear(sf::Color::Transparent);
 
-        // 绘制当前栏
-        drawCurrentBar(window, fontZh, fontEn, pressedCopy);
+        // 绘制历史栏内容
+        drawHistorySubtitles(renderTexture, subtitles, fontZh, fontEn, baseY,
+            SUBTITLE_DURATION, subtitleMargin, subtitleWidth, subtitleLeft);
 
+        // 绘制当前栏内容
+        drawCurrentBar(renderTexture, fontZh, fontEn, pressedCopy, subtitleWidth, subtitleHeight, subtitleLeft);
+
+        renderTexture.display();
+
+        // 用 setClickThrough 实现窗口级别的半透明和点击穿透
+        setClickThrough(hwnd, renderTexture.getTexture().copyToImage());
+
+        // 主窗口只负责显示
+        window.clear(sf::Color::Transparent);
+        sf::Sprite spr(renderTexture.getTexture());
+        window.draw(spr);
         window.display();
     }
     return 0;

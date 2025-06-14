@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.26)
 project(spine_eto_cpp)
 set(CMAKE_CXX_STANDARD 26)
 
@@ -29,10 +29,13 @@ include_directories(${CMAKE_SOURCE_DIR}/dependencies)
 file(GLOB_RECURSE SPINE_ETO_SOURCES "${CMAKE_SOURCE_DIR}/spine-eto/*.cpp")
 
 # 添加可执行文件，并包含spine的源文件
-add_executable(spine_eto_cpp main.cpp ${SPINE_CPP_SOURCES} ${SPINE_SFML_SOURCES} ${SPINE_ETO_SOURCES})
+add_executable(spine_eto_cpp subtitle_test.cpp main.cpp ${SPINE_CPP_SOURCES} ${SPINE_SFML_SOURCES} ${SPINE_ETO_SOURCES})
 
 # 链接 SFML 库
 target_link_libraries(spine_eto_cpp PRIVATE sfml-graphics sfml-window sfml-system)
+
+# 链接 Imm32 库
+target_link_libraries(spine_eto_cpp PRIVATE Imm32)
 
 # 将 SFML 的 DLL 文件复制到构建目录
 add_custom_command(TARGET spine_eto_cpp POST_BUILD COMMAND ${CMAKE_COMMAND}
