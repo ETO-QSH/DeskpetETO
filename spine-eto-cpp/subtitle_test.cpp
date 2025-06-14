@@ -7,7 +7,7 @@
 #include <windows.h>
 
 #include "spine-eto/keyboard_hook_tool.h"
-#include "spine-eto/spine_win_utils.h" // 新增，包含 setClickThrough
+#include "spine-eto/spine_win_utils.h"
 
 // 全局变量
 std::set<DWORD> g_pressedKeys;
