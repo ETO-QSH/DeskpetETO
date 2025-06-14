@@ -37,9 +37,9 @@ extern bool g_showGlowEffect;
 extern bool g_showHalfAlpha;
 
 // 全局窗口和渲染尺寸参数
-constexpr int _WINDOW_WIDTH_ = 420;
-constexpr int _WINDOW_HEIGHT_ = 420;
-constexpr int _Y_OFFSET_ = 140;
+constexpr int WINDOW_WIDTH = 420;
+constexpr int WINDOW_HEIGHT = 420;
+constexpr int Y_OFFSET = 140;
 
 constexpr int WORK_OFFSET = 0;
 constexpr int WINDOM_CROP = 0;
@@ -51,6 +51,11 @@ constexpr float G_SCALE = 0.5f;
 
 constexpr int WALK_SPEED = 100;
 constexpr float GRAVITY_TIME = 1.2f;
+
+// 字幕相关参数
+constexpr float RESIDENCE_TIME = 2.5f;
+constexpr int MAX_SUBTITLES = 10;
+constexpr int SUBTITLE_WIDTH = 0;
 
 // 辉光字符串
 constexpr std::string GLOW_COLOR = "#ffff00";
@@ -88,12 +93,12 @@ int main() {
         dbFile >> g_modelDatabase;
     }
 
-    int WINDOW_WIDTH = (_WINDOW_WIDTH_ * 2 + WINDOM_CROP * 30) * G_SCALE;
-    int WINDOW_HEIGHT = (_WINDOW_HEIGHT_ * 2 + WINDOM_CROP * 30) * G_SCALE;
-    int Y_OFFSET = (_Y_OFFSET_ * 2 + WINDOM_CROP * 10) * G_SCALE;
+    int window_width = (WINDOW_WIDTH * 2 + WINDOM_CROP * 30) * G_SCALE;
+    int window_height = (WINDOW_HEIGHT * 2 + WINDOM_CROP * 30) * G_SCALE;
+    int y_offset = (Y_OFFSET * 2 + WINDOM_CROP * 10) * G_SCALE;
 
-    initWindowAndShader(WINDOW_WIDTH, WINDOW_HEIGHT, Y_OFFSET);
-    initSpineModel(WINDOW_WIDTH, WINDOW_HEIGHT, Y_OFFSET, ACTIVE_LEVEL, MIX_TIME, G_SCALE);
+    initWindowAndShader(window_width, window_height, y_offset);
+    initSpineModel(window_width, window_height, y_offset, ACTIVE_LEVEL, MIX_TIME, G_SCALE);
 
     MouseEventManager mouseEventManager;
 
@@ -105,10 +110,10 @@ int main() {
 
     g_workArea.minX = workAreaRect.left;
     g_workArea.minY = workAreaRect.top;
-    g_workArea.maxX = static_cast<int>(workAreaRect.right - WINDOW_WIDTH);
-    g_workArea.maxY = static_cast<int>(workAreaRect.bottom - WINDOW_HEIGHT) + Y_OFFSET - work_offset;
-    g_workArea.width = WINDOW_WIDTH;
-    g_workArea.height = WINDOW_HEIGHT;
+    g_workArea.maxX = static_cast<int>(workAreaRect.right - window_width);
+    g_workArea.maxY = static_cast<int>(workAreaRect.bottom - window_height) + y_offset - work_offset;
+    g_workArea.width = window_width;
+    g_workArea.height = window_height;
 
     // 初始化右键菜单（只初始化一次）
     MenuModel model = getDefaultMenuModel();
@@ -117,27 +122,9 @@ int main() {
     g_contextMenu = initMenu(model, font, []{ /* 可选：菜单关闭回调 */ });
     g_mainWindow = &window;
 
-    // 启动弹幕窗口并放置到右下角
-    launchSubtitleWindow(2.5f, 10, 450);
-
-    // 放置到右下角
-    HWND subtitleHwnd;
-    {
-        // 等待窗口创建
-        for (int i = 0; i < 50; ++i) {
-            subtitleHwnd = getSubtitleHwnd();
-            if (subtitleHwnd) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        }
-        if (subtitleHwnd) {
-            RECT workArea;
-            SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
-            int width = 450, height = 600;
-            int x = workArea.right - width;
-            int y = workArea.bottom - height;
-            SetWindowPos(subtitleHwnd, HWND_TOPMOST, x, y, width, height, SWP_SHOWWINDOW);
-        }
-    }
+    // 启动弹幕窗口线程
+    float subtitle_width = 450 + SUBTITLE_WIDTH * 30;
+    initSubtitleWindow(RESIDENCE_TIME, MAX_SUBTITLES, subtitle_width);
 
     float speed = WALK_SPEED * G_SCALE;
     int gravity = (g_workArea.maxY - g_workArea.minY) * 2 / (GRAVITY_TIME * GRAVITY_TIME);
@@ -155,11 +142,14 @@ int main() {
 
         // 检查菜单请求退出
         if (g_appShouldExit) {
-            // 主动强制关闭所有菜单线程和窗口
-            extern void forceCloseMenuWindow();
+
+            // 程序退出前销毁杂七杂八的窗口线程
+            forceCloseSubtitleWindow();
+            waitSubtitleThreadExit();
+
             forceCloseMenuWindow();
-            extern void waitMenuThreadExit();
             waitMenuThreadExit();
+
             window.close();
             break;
         }
@@ -218,12 +208,12 @@ int main() {
         }
     }
 
-    // 程序退出前关闭弹幕窗口
-    closeSubtitleWindow();
-    // 程序退出前再次确保所有菜单线程已释放
-    extern void forceCloseMenuWindow();
+    // 程序退出前再次确保所有子线程已释放
+    forceCloseSubtitleWindow();
+    waitSubtitleThreadExit();
+
     forceCloseMenuWindow();
-    extern void waitMenuThreadExit();
     waitMenuThreadExit();
+
     return 0;
 }

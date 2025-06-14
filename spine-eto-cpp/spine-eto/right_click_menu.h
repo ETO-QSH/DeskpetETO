@@ -95,3 +95,7 @@ void drawMenu(MenuWidget* menu, sf::RenderTexture& target);
 
 // 设置第一个三态按钮为0（只设置第一个找到的ToggleTri）
 void setFirstTriToggleToZero(MenuWidget* root);
+
+// 主动强制关闭所有菜单线程和窗口
+void forceCloseMenuWindow();
+void waitMenuThreadExit();

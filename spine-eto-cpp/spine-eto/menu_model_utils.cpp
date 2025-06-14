@@ -9,6 +9,7 @@
 #include "menu_model_utils.h"
 #include "spine_animation.h"
 #include "spine_win_utils.h"
+#include "subtitle_window.h"
 #include "window_physics.h"
 
 #include "json.hpp"
@@ -104,6 +105,8 @@ MenuModel buildMenuModel(
     SimpleCallback onTopOff,
     SimpleCallback onStick,
     SimpleCallback onStickOff,
+    SimpleCallback onSubtitle,
+    SimpleCallback onSubtitleOff,
     std::function<void(int)> onStatus,
     SimpleCallback onPack,
     SimpleCallback onTrans,
@@ -131,6 +134,13 @@ MenuModel buildMenuModel(
         0, [onStick, onStickOff](const int& state) {
             if (state) onStick();
             else onStickOff();
+        }));
+
+    // 键盘字母弹幕窗口开关
+    model.getEntries().push_back(MenuEntry::Toggle("键盘字幕", "./source/icon/subtitle.png",
+        0, [onSubtitle, onSubtitleOff](const int& state) {
+            if (state) onSubtitle();
+            else onSubtitleOff();
         }));
 
     // 状态切换
@@ -247,6 +257,14 @@ MenuModel getDefaultMenuModel() {
             g_windowPhysicsState.locked = false;
             g_windowPhysicsState.vx = 0.0f;
             g_windowPhysicsState.vy = 0.0f;
+        },
+        [] {
+            printf(CONSOLE_BRIGHT_GREEN "[MENU] 键盘字母: 开" CONSOLE_RESET "\n");
+            showSubtitleWindow();
+        },
+        [] {
+            printf(CONSOLE_BRIGHT_GREEN "[MENU] 键盘字母: 关" CONSOLE_RESET "\n");
+            hideSubtitleWindow();
         },
         [](int state){
             extern SpineAnimation* animSystem;

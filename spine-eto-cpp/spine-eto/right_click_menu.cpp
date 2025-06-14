@@ -199,7 +199,7 @@ public:
 
     void draw(sf::RenderTarget& target) {
         if (!visible) return;
-        float margin = 4.f, margin_d = 12.f;
+        float margin = 4.f, margin_d = 10.f;
         float itemHeight = 32.f, padding = 8.f;
 
         // 判断是否是子菜单（有parent即为子菜单）
@@ -515,7 +515,7 @@ void drawMenu(MenuWidget* menuPtr, sf::RenderWindow* parentWindow, const sf::Vec
     sf::RenderWindow menuWindow;
     sf::RenderTexture menuTexture;
 
-    int menuW = 365, menuH = 365;
+    int menuW = 365, menuH = 394;
 
     menuTexture.create(menuW, menuH);
     menuWindow.create(sf::VideoMode(menuW, menuH), L"Menu", sf::Style::None);
