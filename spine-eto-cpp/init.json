@@ -1,0 +1,15 @@
+{
+  "CARD_ID": null,
+  "WORK_OFFSET": 0,
+  "WINDOW_CROP": 0,
+  "ACTIVE_LEVEL": 2,
+  "MIX_TIME": 0.25,
+  "G_SCALE": 0.5,
+  "WALK_SPEED": 100,
+  "GRAVITY_TIME": 1.2,
+  "RESIDENCE_TIME": 2.5,
+  "MAX_SUBTITLES": 10,
+  "SUBTITLE_WIDTH": 0,
+  "GLOW_COLOR": "#ffff00",
+  "DATABASE": "package.json"
+}

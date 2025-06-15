@@ -5,7 +5,6 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <thread>
 
 #include "spine-eto/console_colors.h"
 #include "spine-eto/menu_model_utils.h"
@@ -16,9 +15,6 @@
 #include "spine-eto/window_physics.h"
 
 #include "json.hpp"
-
-// 声明全局退出标志
-extern bool g_appShouldExit;
 
 using namespace spine;
 
@@ -31,36 +27,15 @@ sf::RenderWindow* g_mainWindow = nullptr;
 // 声明全局工作区，供 mouse_events.cpp 使用
 WindowWorkArea g_workArea;
 
+// 声明全局退出标志
+extern bool g_appShouldExit;
 // 声明全局辉光信号变量
 extern bool g_showGlowEffect;
 // 声明全局交互半透明信号变量
 extern bool g_showHalfAlpha;
 
-// 全局窗口和渲染尺寸参数
-constexpr int WINDOW_WIDTH = 420;
-constexpr int WINDOW_HEIGHT = 420;
-constexpr int Y_OFFSET = 140;
-
-constexpr int WORK_OFFSET = 0;
-constexpr int WINDOM_CROP = 0;
-
-// 全局动画参数
-constexpr int ACTIVE_LEVEL = 2;
-constexpr float MIX_TIME = 0.25f;
-constexpr float G_SCALE = 0.5f;
-
-constexpr int WALK_SPEED = 100;
-constexpr float GRAVITY_TIME = 1.2f;
-
-// 字幕相关参数
-constexpr float RESIDENCE_TIME = 2.5f;
-constexpr int MAX_SUBTITLES = 10;
-constexpr int SUBTITLE_WIDTH = 0;
-
-// 辉光字符串
-constexpr std::string GLOW_COLOR = "#ffff00";
-
-// 全局模型数据库
+// 全局数据库
+nlohmann::json g_initDatabase;
 nlohmann::json g_modelDatabase;
 
 // 解析 #RRGGBB 或 #RRGGBBAA 字符串为 sf::Color
@@ -79,23 +54,63 @@ sf::Color parseHexColor(const std::string& hex) {
     return sf::Color(static_cast<sf::Uint8>(r), static_cast<sf::Uint8>(g), static_cast<sf::Uint8>(b), static_cast<sf::Uint8>(a));
 }
 
+// 工具函数：优先从 json 读取，否则用默认值
+template<typename T>
+T getOrDefault(const nlohmann::json& j, const char* key, const T& def) {
+    if (j.contains(key) && !j[key].is_null()) {
+        try {
+            return j[key].get<T>();
+        } catch (...) {}
+    }
+    return def;
+}
+
 int main() {
     system("chcp 65001");
+
+    // 读取 init.json 到全局变量
+    {
+        std::ifstream dbFile("init.json");
+        if (!dbFile) {
+            std::cout << CONSOLE_BRIGHT_RED << "无法打开 init.json" << CONSOLE_RESET << std::endl;
+            return 1;
+        }
+        dbFile >> g_initDatabase;
+    }
 
     // 读取 package.json 到全局变量
     {
         std::ifstream dbFile("package.json");
         if (!dbFile) {
             std::cout << CONSOLE_BRIGHT_RED << "无法打开 package.json" << CONSOLE_RESET << std::endl;
-            printf("无法打开 package.json\n");
             return 1;
         }
         dbFile >> g_modelDatabase;
     }
 
-    int window_width = (WINDOW_WIDTH * 2 + WINDOM_CROP * 30) * G_SCALE;
-    int window_height = (WINDOW_HEIGHT * 2 + WINDOM_CROP * 30) * G_SCALE;
-    int y_offset = (Y_OFFSET * 2 + WINDOM_CROP * 10) * G_SCALE;
+    // 全局窗口和渲染尺寸参数
+    int WORK_OFFSET = getOrDefault(g_initDatabase, "WORK_OFFSET", 0);
+    int WINDOW_CROP = getOrDefault(g_initDatabase, "WINDOW_CROP", 0);
+
+    // 全局动画参数
+    int ACTIVE_LEVEL = getOrDefault(g_initDatabase, "ACTIVE_LEVEL", 2);
+    float MIX_TIME = getOrDefault(g_initDatabase, "MIX_TIME", 0.25f);
+    float G_SCALE = getOrDefault(g_initDatabase, "G_SCALE", 0.5f);
+
+    int WALK_SPEED = getOrDefault(g_initDatabase, "WALK_SPEED", 100);
+    float GRAVITY_TIME = getOrDefault(g_initDatabase, "GRAVITY_TIME", 1.2f);;
+
+    // 字幕相关参数
+    float RESIDENCE_TIME = getOrDefault(g_initDatabase, "RESIDENCE_TIME", 2.5f);
+    int MAX_SUBTITLES = getOrDefault(g_initDatabase, "MAX_SUBTITLES", 10);
+    int SUBTITLE_WIDTH = getOrDefault(g_initDatabase, "SUBTITLE_WIDTH", 0);
+
+    // 辉光字符串
+    std::string GLOW_COLOR = getOrDefault(g_initDatabase, "GLOW_COLOR", std::string("#ffff00"));
+
+    int window_width = (420 * 2 + WINDOW_CROP * 30) * G_SCALE;
+    int window_height = (420 * 2 + WINDOW_CROP * 30) * G_SCALE;
+    int y_offset = (140 * 2 + WINDOW_CROP * 10) * G_SCALE;
 
     initWindowAndShader(window_width, window_height, y_offset);
     initSpineModel(window_width, window_height, y_offset, ACTIVE_LEVEL, MIX_TIME, G_SCALE);
