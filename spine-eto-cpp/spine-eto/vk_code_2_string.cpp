@@ -1,9 +1,55 @@
 #include <windows.h>
 
+#include "json.hpp"
 #include "vk_code_2_string.h"
 
 // 主表实现 (https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes)
+static VkTable g_mainTable; // 全局主表
+static bool g_mainTableInitialized = false;
+
+static void initMainTableFromConfig(const nlohmann::json& config) {
+    // 读取自定义主映射表配置
+    std::vector<std::string> vkTableNames;
+    if (config.contains("VK_TABLES") && config["VK_TABLES"].is_array()) {
+        for (const auto& item : config["VK_TABLES"]) {
+            if (item.is_string()) vkTableNames.push_back(item.get<std::string>());
+        }
+    }
+    std::vector<const VkTable*> vkTablesToCombine;
+    for (const auto& name : vkTableNames) {
+        if (name == "main") vkTablesToCombine.push_back(&getMainVkTable());
+        else if (name == "mouse") vkTablesToCombine.push_back(&mouseVkTables());
+        else if (name == "imeVk") vkTablesToCombine.push_back(&imeVkTables());
+        else if (name == "direct") vkTablesToCombine.push_back(&directionVkTables());
+        else if (name == "mainNum") vkTablesToCombine.push_back(&mainNumVkTables());
+        else if (name == "alphabet") vkTablesToCombine.push_back(&alphabetVkTables());
+        else if (name == "liteNum") vkTablesToCombine.push_back(&liteNumVkTables());
+        else if (name == "liteNumOp") vkTablesToCombine.push_back(&liteNumOpVkTables());
+        else if (name == "funcNum") vkTablesToCombine.push_back(&funcNumVkTables());
+        else if (name == "highFunc") vkTablesToCombine.push_back(&highFuncVkTables());
+        else if (name == "midFunc") vkTablesToCombine.push_back(&midFuncVkTables());
+        else if (name == "modify") vkTablesToCombine.push_back(&modifyVkTables());
+        else if (name == "browser") vkTablesToCombine.push_back(&browserVkTables());
+        else if (name == "appVk") vkTablesToCombine.push_back(&appVkTables());
+        else if (name == "inter") vkTablesToCombine.push_back(&interVkTables());
+        else if (name == "other") vkTablesToCombine.push_back(&otherVkTables());
+    }
+    if (!vkTablesToCombine.empty()) {
+        g_mainTable = combineVkTables(vkTablesToCombine);
+        g_mainTableInitialized = true;
+    }
+}
+
+// 提供初始化接口，供main.cpp调用
+void initVkMainTableFromJson(const nlohmann::json& config) {
+    initMainTableFromConfig(config);
+}
+
+// 获取主映射表
 const VkTable& getMainVkTable() {
+    if (g_mainTableInitialized) {
+        return g_mainTable;
+    }
     static VkTable vkMap = {
 
         // 鼠标按键区（0x00 ~ 0x06）
@@ -245,7 +291,7 @@ const VkTable& funcNumVkTables() {
 }
 
 // 支持度高的基础按键分表
-const VkTable& highFuncVkTable1() {
+const VkTable& highFuncVkTables() {
     static VkTable table = {
         {VK_BACK, "Back"}, {VK_TAB, "Tab"}, {VK_RETURN, "Enter"}, {VK_CAPITAL, "CapsLock"},
         {VK_ESCAPE, "Escape"}, {VK_SPACE, "Space"}, {VK_PRIOR, "PageUp"}, {VK_NEXT, "PageDown"},
@@ -255,7 +301,7 @@ const VkTable& highFuncVkTable1() {
 }
 
 // 支持度中的基础按键分表
-const VkTable& midFuncVkTable1() {
+const VkTable& midFuncVkTables() {
     static VkTable table = {
         {VK_CLEAR, "Clear"}, {VK_PAUSE, "Pause"}, {VK_SELECT, "Select"}, {VK_PRINT, "Print"},
         {VK_EXECUTE, "Execute"}, {VK_SNAPSHOT, "Snapshot"}, {VK_HELP, "Help"},
@@ -265,7 +311,7 @@ const VkTable& midFuncVkTable1() {
 }
 
 // 非常重要的修饰键分表
-const VkTable& modifyVkTable1() {
+const VkTable& modifyVkTables() {
     static VkTable table = {
         {VK_LWIN, "LWin"}, {VK_RWIN, "RWin"}, {VK_APPS, "Apps"},
         {VK_MENU, "Alt"},{VK_LMENU, "LAlt"}, {VK_RMENU, "RAlt"},

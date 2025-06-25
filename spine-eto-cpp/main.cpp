@@ -13,6 +13,7 @@
 #include "spine-eto/spine_win_utils.h"
 #include "spine-eto/subtitle_window.h"
 #include "spine-eto/window_physics.h"
+#include "spine-eto/vk_code_2_string.h"
 
 #include "json.hpp"
 
@@ -33,6 +34,9 @@ extern bool g_appShouldExit;
 extern bool g_showGlowEffect;
 // 声明全局交互半透明信号变量
 extern bool g_showHalfAlpha;
+
+// 声明全局字幕特殊处理变量
+bool g_enableSpecialAlpha = false;
 
 // 全局数据库
 nlohmann::json g_initDatabase;
@@ -104,6 +108,10 @@ int main() {
     float RESIDENCE_TIME = getOrDefault(g_initDatabase, "RESIDENCE_TIME", 2.5f);
     int MAX_SUBTITLES = getOrDefault(g_initDatabase, "MAX_SUBTITLES", 10);
     int SUBTITLE_WIDTH = getOrDefault(g_initDatabase, "SUBTITLE_WIDTH", 0);
+
+    // 初始化主vk表（如有VK_TABLES配置）
+    initVkMainTableFromJson(g_initDatabase);
+    g_enableSpecialAlpha = getOrDefault(g_initDatabase, "SPECIAL_KEYS", false);
 
     // 辉光字符串
     std::string GLOW_COLOR = getOrDefault(g_initDatabase, "GLOW_COLOR", std::string("#ffff00"));

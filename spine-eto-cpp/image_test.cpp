@@ -168,26 +168,53 @@ void drawRectByIndex(sf::RenderWindow& window, const sf::Image& image, int index
     window.display();
 }
 
-// 打包为一个函数，返回最终texture
-sf::Texture getBubbleTexture(int index, int targetWidth, int targetHeight) {
+// 打包为一个函数，返回最终texture，支持指定字体、字号、颜色
+sf::Texture getBubbleTexture(
+    int index,
+    int targetWidth,
+    int targetHeight,
+    const std::string& fontPath = "",
+    unsigned int fontSize = 24,
+    sf::Color color = sf::Color::White
+) {
     sf::Image image;
     image.loadFromFile("source/image/bubble_change.png");
     auto rects = findRects(image);
 
     sf::Image rawImage = getRectImageByIndex(image, index, rects);
     sf::Image subImage = expandRectImage(rawImage, targetWidth, targetHeight);
+
+    // 如果需要字体和颜色处理（比如在气泡上绘制文字），这里可以绘制
+    // 这里只设置整体颜色（如 tint 效果），如需绘制文字请自行添加
+    if (color != sf::Color::White) {
+        for (unsigned y = 0; y < subImage.getSize().y; ++y) {
+            for (unsigned x = 0; x < subImage.getSize().x; ++x) {
+                sf::Color c = subImage.getPixel(x, y);
+                // 仅对非透明像素着色
+                if (c.a > 0) {
+                    c.r = color.r;
+                    c.g = color.g;
+                    c.b = color.b;
+                    subImage.setPixel(x, y, c);
+                }
+            }
+        }
+    }
+
     sf::Texture texture;
     texture.loadFromImage(subImage);
     return texture;
 }
 
 int main() {
-
     int index = 1;
     int targetWidth = 600;
-    int targetHeight = 400;
+    int targetHeight = 300;
+    std::string fontPath = "C:/Windows/Fonts/simhei.ttf"; // 可自定义
+    unsigned int fontSize = 32;
+    sf::Color color = sf::Color(200, 255, 200);
 
-    sf::Texture texture = getBubbleTexture(index, targetWidth, targetHeight);
+    sf::Texture texture = getBubbleTexture(index, targetWidth, targetHeight, fontPath, fontSize, color);
     sf::Sprite sprite(texture);
 
     sf::RenderWindow window(sf::VideoMode(texture.getSize().x, texture.getSize().y), "Rect Crop Demo");

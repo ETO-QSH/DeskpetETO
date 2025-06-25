@@ -104,6 +104,10 @@ sf::String symbolForHistory(
     bool forHistory,
     bool isMiscChar
 ) {
+    // g_enableSpecialAlpha=false时，历史栏也输出双符号（和当前栏一致）
+    if (!g_enableSpecialAlpha) {
+        return sf::String::fromUtf8(n.begin(), n.end());
+    }
     // 历史栏且只和shift组合/无修饰时输出单符号，否则输出双符号
     if (isMiscChar || n.size() != 2) {
         return sf::String::fromUtf8(n.begin(), n.end());
@@ -197,7 +201,7 @@ sf::String comboToString(const std::set<DWORD>& keys, bool forHistory) {
     bool first = true;
     for (const auto& n : ordered) {
         // interVkTables/mainNumVkTables符号处理：历史栏且只和shift组合时，不输出shift+，只输出符号
-        if (forHistory && modKeys.size() == 1 && modKeys.count("Shift") == 1) {
+        if (g_enableSpecialAlpha && forHistory && modKeys.size() == 1 && modKeys.count("Shift") == 1) {
             if (others.size() == 1 && n == "Shift") {
                 // interVkTables
                 if (interTable.end() != std::find_if(interTable.begin(), interTable.end(),
@@ -220,7 +224,7 @@ sf::String comboToString(const std::set<DWORD>& keys, bool forHistory) {
         // 字母键大小写处理
         if (n.size() == 1 && std::isalpha(n[0])) {
             char ch = n[0];
-            if (onlyAlpha || onlyShiftAlpha) {
+            if (g_enableSpecialAlpha && (onlyAlpha || onlyShiftAlpha)) {
                 if (capsOn)
                     ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
                 else
@@ -302,7 +306,7 @@ void handleNewlyPressed(
     float SUBTITLE_DURATION
 ) {
     static const std::vector<std::string> priority = {"Win", "Ctrl", "Alt", "Shift"};
-    const VkTable& modifyTable = modifyVkTable1();
+    const VkTable& modifyTable = modifyVkTables();
 
     auto isModifyKey = [&](DWORD vk) {
         return modifyTable.find(static_cast<int>(vk)) != modifyTable.end();
@@ -335,6 +339,7 @@ void handleNewlyPressed(
             std::set<std::string> modKeys;
             std::vector<std::string> others;
             extractModKeysAndOthers(combo, modKeys, others);
+
             bool onlyShiftAlpha = false;
             if (others.size() == 1 && others[0].size() == 1 && std::isalpha(others[0][0])) {
                 onlyShiftAlpha = (combo.size() == 2 && modKeys.count("Shift") == 1);
@@ -363,27 +368,6 @@ void handleNewlyPressed(
             }
         }
     }
-}
-
-// 辅助函数：根据最大宽度裁剪字符串，超出时末尾加...
-sf::String truncateTextToFitWidth(const sf::Text& textTemplate, const sf::String& str, float maxWidth) {
-    sf::Text temp = textTemplate;
-    temp.setString(str);
-    if (temp.getLocalBounds().width <= maxWidth) {
-        return str;
-    }
-    sf::String ellipsis = L"...";
-    temp.setString(ellipsis);
-    sf::String result;
-    for (std::size_t i = 0; i < str.getSize(); ++i) {
-        result += str[i];
-        temp.setString(result + ellipsis);
-        if (temp.getLocalBounds().width > maxWidth) {
-            if (i > 0) result.erase(result.getSize() - 1, 1);
-            break;
-        }
-    }
-    return result + ellipsis;
 }
 
 // 绘制历史字幕
@@ -456,12 +440,6 @@ void drawHistorySubtitles(
             textEn.setOutlineColor(sf::Color(0, 0, 0, a));
             textEn.setOutlineThickness(3);
             float offsetX2 = textZh.getPosition().x + (textZh.getLocalBounds().width + textZh.getLocalBounds().left);
-
-            // 限制英文文本宽度
-            float maxEnWidth = subtitleWidth - offsetX2 - 10.f;
-            sf::String enStr = sf::String::fromUtf8(it->text.begin(), it->text.end());
-            textEn.setString(truncateTextToFitWidth(textEn, enStr, maxEnWidth));
-
             textEn.setPosition(offsetX2, yPos + 9);
             window.draw(textEn);
         }
@@ -506,11 +484,8 @@ void drawCurrentBar(
     currentEn.setFillColor(sf::Color::White);
 
     float offsetX = currentZh.getPosition().x + currentZh.getLocalBounds().width;
-    // 限制当前栏英文文本宽度
-    float maxEnWidth = subtitleWidth - offsetX - 10.f;
-    sf::String enStr = pressedCopy.empty() ? "" : comboToString(pressedCopy, false);
-    currentEn.setString(truncateTextToFitWidth(currentEn, enStr, maxEnWidth));
     currentEn.setPosition(offsetX, zhOffsetY + 5.f);
+    currentEn.setString(pressedCopy.empty() ? "" : comboToString(pressedCopy, false));
     currentEn.setOutlineColor(sf::Color(0, 0, 0, 191));
     currentEn.setOutlineThickness(3);
 

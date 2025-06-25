@@ -76,3 +76,6 @@ void cleanReleasedKeys(
 
 // 判断当前输入法是否为中文输入模式
 bool IsChineseInput();
+
+// 控制是否开启特殊处理的全局参数
+extern bool g_enableSpecialAlpha;

@@ -11,5 +11,7 @@
   "MAX_SUBTITLES": 10,
   "SUBTITLE_WIDTH": 0,
   "GLOW_COLOR": "#ffff00",
-  "DATABASE": "package.json"
+  "DATA_BASE": "package.json",
+  "SPECIAL_KEYS": true,
+  "VK_TABLES": ["direct", "mainNum", "alphabet", "liteNum", "liteNumOp", "funcNum", "highFunc", "midFunc", "modify", "inter"]
 }
